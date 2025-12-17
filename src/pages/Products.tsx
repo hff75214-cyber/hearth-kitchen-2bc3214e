@@ -65,10 +65,10 @@ export default function Products() {
   const loadData = async () => {
     const [productsData, categoriesData] = await Promise.all([
       db.products.toArray(),
-      db.categories.where('isActive').equals(1).toArray(),
+      db.categories.toArray(),
     ]);
     setProducts(productsData);
-    setCategories(categoriesData);
+    setCategories(categoriesData.filter(c => c.isActive));
   };
 
   const filteredProducts = products.filter((product) => {

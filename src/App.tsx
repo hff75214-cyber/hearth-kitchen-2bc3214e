@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +15,17 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
+
+// Initialize theme on app load
+const initTheme = () => {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'dark') {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+};
+initTheme();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

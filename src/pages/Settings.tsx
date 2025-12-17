@@ -12,6 +12,8 @@ import {
   X,
   Store,
   Tag,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { db, Settings as SettingsType, Category, exportDatabase, importDatabase } from '@/lib/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,10 +58,28 @@ export default function Settings() {
     isActive: true,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return false;
+  });
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+  };
 
   const loadData = async () => {
     const [settingsData, categoriesData] = await Promise.all([
@@ -282,8 +302,41 @@ export default function Settings() {
           </Card>
         </motion.div>
 
-        {/* Backup & Restore */}
+        {/* Theme Toggle */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <Card className="glass shadow-card">
+            <CardHeader>
+              <CardTitle className="text-foreground flex items-center gap-2">
+                {isDarkMode ? <Moon className="w-5 h-5 text-primary" /> : <Sun className="w-5 h-5 text-primary" />}
+                المظهر
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/50">
+                <div className="flex items-center gap-3">
+                  <Sun className="w-5 h-5 text-warning" />
+                  <div>
+                    <p className="font-semibold text-foreground">الوضع الفاتح / الداكن</p>
+                    <p className="text-sm text-muted-foreground">
+                      {isDarkMode ? 'الوضع الداكن مفعّل' : 'الوضع الفاتح مفعّل'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Sun className="w-4 h-4 text-muted-foreground" />
+                  <Switch
+                    checked={isDarkMode}
+                    onCheckedChange={toggleTheme}
+                  />
+                  <Moon className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Backup & Restore */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="glass shadow-card">
             <CardHeader>
               <CardTitle className="text-foreground flex items-center gap-2">
@@ -346,7 +399,7 @@ export default function Settings() {
       </div>
 
       {/* Categories Management */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
         <Card className="glass shadow-card">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-foreground flex items-center gap-2">
