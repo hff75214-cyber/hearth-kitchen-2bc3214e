@@ -17,7 +17,7 @@ import {
   ShoppingBag,
   Check,
 } from 'lucide-react';
-import { db, Product, Category, Order, OrderItem, generateOrderNumber, updateDailySummary } from '@/lib/database';
+import { db, Product, Category, Order, OrderItem, generateOrderNumber, updateDailySummary, addNotification } from '@/lib/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -208,9 +208,22 @@ export default function POS() {
         }
       }
 
-      // Update table status if dine-in
+      // Update table status if dine-in - set to OCCUPIED
       if (orderType === 'dine-in' && selectedTable) {
-        await db.restaurantTables.update(selectedTable, { status: 'available', currentOrderId: undefined });
+        await db.restaurantTables.update(selectedTable, { 
+          status: 'occupied', 
+          currentOrderId: undefined,
+          occupiedAt: new Date()
+        });
+        
+        // Add notification for new table order
+        const tableData2 = tables.find(t => t.id === selectedTable);
+        await addNotification({
+          type: 'new_order',
+          title: 'طلب جديد',
+          message: `طلب جديد للطاولة ${tableData2?.name || selectedTable}`,
+          relatedId: selectedTable,
+        });
       }
 
       // Update daily summary

@@ -11,7 +11,7 @@ import {
   X,
   Check,
 } from 'lucide-react';
-import { db, Product, Category } from '@/lib/database';
+import { db, Product, Category, generateSKU, generateBarcode } from '@/lib/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,8 +51,8 @@ export default function Products() {
     unit: 'قطعة',
     quantity: 0,
     minQuantityAlert: 5,
-    sku: '',
-    barcode: '',
+    sku: generateSKU(),
+    barcode: generateBarcode(),
     description: '',
     image: '',
     isActive: true,
@@ -133,8 +133,8 @@ export default function Products() {
       unit: 'قطعة',
       quantity: 0,
       minQuantityAlert: 5,
-      sku: '',
-      barcode: '',
+      sku: generateSKU(),
+      barcode: generateBarcode(),
       description: '',
       image: '',
       isActive: true,

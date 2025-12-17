@@ -43,6 +43,17 @@ export interface RestaurantTable {
   position: { x: number; y: number };
   shape: 'square' | 'round' | 'rectangle';
   isActive: boolean;
+  occupiedAt?: Date;
+}
+
+export interface Notification {
+  id?: number;
+  type: 'low_stock' | 'table_time' | 'new_order' | 'order_ready' | 'system';
+  title: string;
+  message: string;
+  relatedId?: number;
+  isRead: boolean;
+  createdAt: Date;
 }
 
 export interface OrderItem {
@@ -115,18 +126,103 @@ class RestaurantDatabase extends Dexie {
   orders!: Table<Order>;
   settings!: Table<Settings>;
   dailySummaries!: Table<DailySummary>;
+  notifications!: Table<Notification>;
 
   constructor() {
     super('RestaurantPOS');
     
-    this.version(1).stores({
+    this.version(2).stores({
       products: '++id, name, category, subcategory, type, sku, barcode, isActive',
       categories: '++id, name, type, order, isActive',
       restaurantTables: '++id, number, status, isActive',
       orders: '++id, orderNumber, type, tableId, status, createdAt, paymentMethod',
       settings: '++id',
-      dailySummaries: '++id, date'
+      dailySummaries: '++id, date',
+      notifications: '++id, type, isRead, createdAt'
     });
+  }
+}
+
+// Helper function to generate SKU
+export function generateSKU(): string {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `SKU-${timestamp}-${random}`;
+}
+
+// Helper function to generate Barcode
+export function generateBarcode(): string {
+  const prefix = '628';
+  const timestamp = Date.now().toString().slice(-8);
+  const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+  return `${prefix}${timestamp}${random}`;
+}
+
+// Helper function to add notification
+export async function addNotification(notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>): Promise<void> {
+  await db.notifications.add({
+    ...notification,
+    isRead: false,
+    createdAt: new Date(),
+  });
+}
+
+// Helper function to check table time and create notifications
+export async function checkTableTimes(): Promise<void> {
+  const occupiedTables = await db.restaurantTables
+    .where('status')
+    .equals('occupied')
+    .toArray();
+
+  for (const table of occupiedTables) {
+    if (table.occupiedAt) {
+      const occupiedTime = Date.now() - new Date(table.occupiedAt).getTime();
+      const oneHour = 60 * 60 * 1000;
+      
+      if (occupiedTime >= oneHour) {
+        // Check if notification already exists
+        const existingNotification = await db.notifications
+          .where('type')
+          .equals('table_time')
+          .and(n => n.relatedId === table.id && !n.isRead)
+          .first();
+        
+        if (!existingNotification) {
+          await addNotification({
+            type: 'table_time',
+            title: `طاولة ${table.name} مشغولة منذ ساعة`,
+            message: `الطاولة رقم ${table.number} مشغولة منذ أكثر من ساعة. هل تريد تحريرها أو تمديد الفترة؟`,
+            relatedId: table.id,
+          });
+        }
+      }
+    }
+  }
+}
+
+// Check low stock and create notifications
+export async function checkLowStock(): Promise<void> {
+  const products = await db.products
+    .where('type')
+    .equals('stored')
+    .and(p => p.isActive && p.quantity <= p.minQuantityAlert)
+    .toArray();
+
+  for (const product of products) {
+    const existingNotification = await db.notifications
+      .where('type')
+      .equals('low_stock')
+      .and(n => n.relatedId === product.id && !n.isRead)
+      .first();
+    
+    if (!existingNotification) {
+      await addNotification({
+        type: 'low_stock',
+        title: `نفاد مخزون: ${product.name}`,
+        message: `الكمية المتبقية: ${product.quantity} ${product.unit}. الحد الأدنى: ${product.minQuantityAlert}`,
+        relatedId: product.id,
+      });
+    }
   }
 }
 
