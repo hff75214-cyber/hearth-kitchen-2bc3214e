@@ -10,8 +10,9 @@ import {
   Image as ImageIcon,
   X,
   Check,
+  Boxes,
 } from 'lucide-react';
-import { db, Product, Category, generateSKU, generateBarcode } from '@/lib/database';
+import { db, Product, Category, RawMaterial, ProductIngredient, generateSKU, generateBarcode } from '@/lib/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,14 +34,23 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 
+interface IngredientInput {
+  rawMaterialId: number;
+  quantityUsed: number;
+  materialName?: string;
+  unit?: string;
+}
+
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [ingredients, setIngredients] = useState<IngredientInput[]>([]);
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
     category: '',
@@ -64,12 +74,14 @@ export default function Products() {
   }, []);
 
   const loadData = async () => {
-    const [productsData, categoriesData] = await Promise.all([
+    const [productsData, categoriesData, materialsData] = await Promise.all([
       db.products.toArray(),
       db.categories.toArray(),
+      db.rawMaterials.toArray(),
     ]);
     setProducts(productsData);
     setCategories(categoriesData.filter(c => c.isActive));
+    setRawMaterials(materialsData.filter(m => m.isActive));
   };
 
   const filteredProducts = products.filter((product) => {
@@ -85,19 +97,41 @@ export default function Products() {
     e.preventDefault();
     
     try {
+      let productId: number;
+      
       if (editingProduct) {
         await db.products.update(editingProduct.id!, {
           ...formData,
           updatedAt: new Date(),
         });
+        productId = editingProduct.id!;
+        
+        // Delete old ingredients and add new ones
+        await db.productIngredients.where('productId').equals(productId).delete();
+        
         toast({ title: 'تم التحديث', description: 'تم تحديث المنتج بنجاح' });
       } else {
-        await db.products.add({
+        productId = await db.products.add({
           ...formData as Product,
           createdAt: new Date(),
           updatedAt: new Date(),
-        });
+        }) as number;
         toast({ title: 'تمت الإضافة', description: 'تم إضافة المنتج بنجاح' });
+      }
+      
+      // Save ingredients for prepared products
+      if (formData.type === 'prepared' && ingredients.length > 0) {
+        const ingredientsToAdd = ingredients
+          .filter(ing => ing.rawMaterialId && ing.quantityUsed > 0)
+          .map(ing => ({
+            productId,
+            rawMaterialId: ing.rawMaterialId,
+            quantityUsed: ing.quantityUsed,
+          }));
+        
+        if (ingredientsToAdd.length > 0) {
+          await db.productIngredients.bulkAdd(ingredientsToAdd);
+        }
       }
       
       setIsDialogOpen(false);
@@ -110,20 +144,45 @@ export default function Products() {
 
   const handleDelete = async (id: number) => {
     if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+      // Delete associated ingredients
+      await db.productIngredients.where('productId').equals(id).delete();
       await db.products.delete(id);
       toast({ title: 'تم الحذف', description: 'تم حذف المنتج بنجاح' });
       loadData();
     }
   };
 
-  const handleEdit = (product: Product) => {
+  const handleEdit = async (product: Product) => {
     setEditingProduct(product);
     setFormData(product);
+    
+    // Load existing ingredients
+    if (product.type === 'prepared' && product.id) {
+      const existingIngredients = await db.productIngredients
+        .where('productId')
+        .equals(product.id)
+        .toArray();
+      
+      const ingredientsWithNames = existingIngredients.map(ing => {
+        const material = rawMaterials.find(m => m.id === ing.rawMaterialId);
+        return {
+          rawMaterialId: ing.rawMaterialId,
+          quantityUsed: ing.quantityUsed,
+          materialName: material?.name,
+          unit: material?.unit,
+        };
+      });
+      setIngredients(ingredientsWithNames);
+    } else {
+      setIngredients([]);
+    }
+    
     setIsDialogOpen(true);
   };
 
   const resetForm = () => {
     setEditingProduct(null);
+    setIngredients([]);
     setFormData({
       name: '',
       category: '',
@@ -141,6 +200,30 @@ export default function Products() {
       image: '',
       isActive: true,
     });
+  };
+
+  const addIngredient = () => {
+    setIngredients([...ingredients, { rawMaterialId: 0, quantityUsed: 0 }]);
+  };
+
+  const removeIngredient = (index: number) => {
+    setIngredients(ingredients.filter((_, i) => i !== index));
+  };
+
+  const updateIngredient = (index: number, field: keyof IngredientInput, value: number) => {
+    const updated = [...ingredients];
+    if (field === 'rawMaterialId') {
+      const material = rawMaterials.find(m => m.id === value);
+      updated[index] = {
+        ...updated[index],
+        rawMaterialId: value,
+        materialName: material?.name,
+        unit: material?.unit,
+      };
+    } else {
+      updated[index] = { ...updated[index], [field]: value };
+    }
+    setIngredients(updated);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -421,6 +504,85 @@ export default function Products() {
                       <SelectItem value="120">ساعتين</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {/* Ingredients Section for Prepared Products */}
+              {formData.type === 'prepared' && rawMaterials.length > 0 && (
+                <div className="md:col-span-2 space-y-3 p-4 rounded-xl bg-secondary/30 border border-border">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-foreground flex items-center gap-2">
+                      <Boxes className="w-4 h-4 text-primary" />
+                      المواد الخام المستخدمة
+                    </Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={addIngredient}
+                      className="border-primary text-primary hover:bg-primary/10"
+                    >
+                      <Plus className="w-4 h-4 ml-1" />
+                      إضافة مادة
+                    </Button>
+                  </div>
+                  
+                  {ingredients.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      لم يتم إضافة مواد خام. أضف المواد التي يستهلكها هذا المنتج.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {ingredients.map((ingredient, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <Select
+                            value={String(ingredient.rawMaterialId || '')}
+                            onValueChange={(value) => updateIngredient(index, 'rawMaterialId', parseInt(value))}
+                          >
+                            <SelectTrigger className="flex-1 bg-secondary border-border">
+                              <SelectValue placeholder="اختر المادة الخام" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {rawMaterials.map((material) => (
+                                <SelectItem key={material.id} value={String(material.id)}>
+                                  {material.name} ({material.unit})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={ingredient.quantityUsed || ''}
+                            onChange={(e) => updateIngredient(index, 'quantityUsed', parseFloat(e.target.value) || 0)}
+                            className="w-24 bg-secondary border-border"
+                            placeholder="الكمية"
+                          />
+                          {ingredient.unit && (
+                            <span className="text-sm text-muted-foreground w-12">{ingredient.unit}</span>
+                          )}
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => removeIngredient(index)}
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {formData.type === 'prepared' && rawMaterials.length === 0 && (
+                <div className="md:col-span-2 p-4 rounded-xl bg-warning/10 border border-warning/30">
+                  <p className="text-sm text-warning text-center">
+                    لم يتم إضافة مواد خام بعد. أضف المواد الخام من صفحة "المواد الخام" أولاً.
+                  </p>
                 </div>
               )}
 
