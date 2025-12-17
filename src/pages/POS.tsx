@@ -174,6 +174,10 @@ export default function POS() {
       const orderNumber = await generateOrderNumber();
       const tableData = selectedTable ? tables.find(t => t.id === selectedTable) : null;
 
+      // Check if order has any prepared items (need kitchen processing)
+      const hasPreparedItems = cart.some(item => item.preparationTime && item.preparationTime > 0);
+      const orderStatus = hasPreparedItems ? 'pending' : 'completed';
+
       const order: Omit<Order, 'id'> = {
         orderNumber,
         type: orderType,
@@ -187,16 +191,26 @@ export default function POS() {
         totalCost,
         profit,
         paymentMethod,
-        status: 'completed',
+        status: orderStatus,
         customerName: customerInfo.name || undefined,
         customerPhone: customerInfo.phone || undefined,
         customerAddress: customerInfo.address || undefined,
         notes: orderNotes || undefined,
         createdAt: new Date(),
-        completedAt: new Date(),
+        completedAt: hasPreparedItems ? undefined : new Date(),
       };
 
-      await db.orders.add(order);
+      const orderId = await db.orders.add(order);
+
+      // Add notification for kitchen if order has prepared items
+      if (hasPreparedItems) {
+        await addNotification({
+          type: 'new_order',
+          title: 'طلب جديد للمطبخ',
+          message: `طلب جديد #${orderNumber} يحتاج تحضير`,
+          relatedId: orderId as number,
+        });
+      }
 
       // Update stock for stored products
       for (const item of cart) {
