@@ -8,6 +8,7 @@ export interface Product {
   category: string;
   subcategory?: string;
   type: 'prepared' | 'stored'; // مأكولات تُحضّر أو منتجات مخزنة
+  preparationTime?: number; // وقت التحضير بالدقائق (للمنتجات المحضرة)
   costPrice: number;
   salePrice: number;
   unit: string;
@@ -65,6 +66,8 @@ export interface OrderItem {
   discount: number;
   total: number;
   notes?: string;
+  preparationTime?: number; // وقت التحضير بالدقائق
+  isPrepared?: boolean; // هل تم التحضير
 }
 
 export interface Order {

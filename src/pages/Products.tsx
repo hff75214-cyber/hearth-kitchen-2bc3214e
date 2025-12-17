@@ -46,6 +46,7 @@ export default function Products() {
     category: '',
     subcategory: '',
     type: 'prepared',
+    preparationTime: 15,
     costPrice: 0,
     salePrice: 0,
     unit: 'قطعة',
@@ -128,6 +129,7 @@ export default function Products() {
       category: '',
       subcategory: '',
       type: 'prepared',
+      preparationTime: 15,
       costPrice: 0,
       salePrice: 0,
       unit: 'قطعة',
@@ -395,6 +397,32 @@ export default function Products() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {formData.type === 'prepared' && (
+                <div className="space-y-2">
+                  <Label className="text-foreground">وقت التحضير *</Label>
+                  <Select
+                    value={String(formData.preparationTime || 15)}
+                    onValueChange={(value) => setFormData({ ...formData, preparationTime: parseInt(value) })}
+                  >
+                    <SelectTrigger className="bg-secondary border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 دقائق</SelectItem>
+                      <SelectItem value="10">10 دقائق</SelectItem>
+                      <SelectItem value="15">15 دقيقة</SelectItem>
+                      <SelectItem value="20">20 دقيقة</SelectItem>
+                      <SelectItem value="25">25 دقيقة</SelectItem>
+                      <SelectItem value="30">30 دقيقة</SelectItem>
+                      <SelectItem value="45">45 دقيقة</SelectItem>
+                      <SelectItem value="60">ساعة</SelectItem>
+                      <SelectItem value="90">ساعة ونصف</SelectItem>
+                      <SelectItem value="120">ساعتين</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label className="text-foreground">الوحدة</Label>
