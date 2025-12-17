@@ -35,12 +35,47 @@ export default function Kitchen() {
   useEffect(() => {
     loadOrders();
     const ordersInterval = setInterval(loadOrders, 10000);
-    const timerInterval = setInterval(() => setCurrentTime(Date.now()), 1000);
+    const timerInterval = setInterval(() => {
+      setCurrentTime(Date.now());
+      checkAutoComplete();
+    }, 1000);
     return () => {
       clearInterval(ordersInterval);
       clearInterval(timerInterval);
     };
   }, []);
+
+  // Auto-complete orders when prep time is done
+  const checkAutoComplete = async () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const allOrders = await db.orders
+      .where('createdAt')
+      .above(today)
+      .toArray();
+    
+    const preparingOrders = allOrders.filter(o => o.status === 'preparing');
+    
+    for (const order of preparingOrders) {
+      const maxPrepTime = Math.max(...order.items.map(item => item.preparationTime || 0));
+      if (maxPrepTime > 0) {
+        const elapsed = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 1000);
+        const maxSeconds = maxPrepTime * 60;
+        
+        // Auto-mark as ready when time is up (or exceeded by 10 seconds grace)
+        if (elapsed >= maxSeconds) {
+          await db.orders.update(order.id!, { status: 'ready' });
+          await addNotification({
+            type: 'order_ready',
+            title: 'طلب جاهز',
+            message: `الطلب #${order.orderNumber} جاهز للتسليم`,
+            relatedId: order.id,
+          });
+        }
+      }
+    }
+  };
 
   const loadOrders = async () => {
     const today = new Date();
@@ -52,8 +87,11 @@ export default function Kitchen() {
       .reverse()
       .toArray();
     
-    // Filter out completed and cancelled orders
-    const activeOrders = allOrders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
+    // Filter only orders with prepared items that are not completed
+    const activeOrders = allOrders.filter(o => {
+      const hasPreparedItems = o.items.some(item => item.preparationTime && item.preparationTime > 0);
+      return hasPreparedItems && o.status !== 'completed' && o.status !== 'cancelled';
+    });
     
     // Calculate max prep time for each order
     const ordersWithTimers = activeOrders.map(order => {
