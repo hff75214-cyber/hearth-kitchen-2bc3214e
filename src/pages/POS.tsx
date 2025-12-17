@@ -176,7 +176,19 @@ export default function POS() {
 
       // Check if order has any prepared items (need kitchen processing)
       const hasPreparedItems = cart.some(item => item.preparationTime && item.preparationTime > 0);
-      const orderStatus = hasPreparedItems ? 'pending' : 'completed';
+      
+      // Determine order status:
+      // - Prepared items -> start 'preparing' automatically
+      // - Delivery without prepared items -> start 'pending' for tracking
+      // - Other orders without prepared items -> completed immediately
+      let orderStatus: Order['status'];
+      if (hasPreparedItems) {
+        orderStatus = 'preparing'; // Auto-start preparation
+      } else if (orderType === 'delivery') {
+        orderStatus = 'pending'; // Delivery needs tracking
+      } else {
+        orderStatus = 'completed';
+      }
 
       const order: Omit<Order, 'id'> = {
         orderNumber,
@@ -197,7 +209,7 @@ export default function POS() {
         customerAddress: customerInfo.address || undefined,
         notes: orderNotes || undefined,
         createdAt: new Date(),
-        completedAt: hasPreparedItems ? undefined : new Date(),
+        completedAt: orderStatus === 'completed' ? new Date() : undefined,
       };
 
       const orderId = await db.orders.add(order);
@@ -207,7 +219,17 @@ export default function POS() {
         await addNotification({
           type: 'new_order',
           title: 'طلب جديد للمطبخ',
-          message: `طلب جديد #${orderNumber} يحتاج تحضير`,
+          message: `طلب جديد #${orderNumber} بدأ التحضير`,
+          relatedId: orderId as number,
+        });
+      }
+      
+      // Add notification for delivery orders
+      if (orderType === 'delivery') {
+        await addNotification({
+          type: 'new_order',
+          title: 'طلب توصيل جديد',
+          message: `طلب توصيل جديد #${orderNumber} للعميل ${customerInfo.name}`,
           relatedId: orderId as number,
         });
       }
