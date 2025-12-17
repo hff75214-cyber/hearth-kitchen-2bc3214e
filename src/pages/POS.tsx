@@ -16,8 +16,10 @@ import {
   Truck,
   ShoppingBag,
   Check,
+  Users,
+  UserPlus,
 } from 'lucide-react';
-import { db, Product, Category, Order, OrderItem, generateOrderNumber, updateDailySummary, addNotification } from '@/lib/database';
+import { db, Product, Category, Order, OrderItem, Customer, generateOrderNumber, updateDailySummary, addNotification, deductRawMaterials } from '@/lib/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +38,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { toast } from '@/hooks/use-toast';
 
 interface CartItem extends OrderItem {
@@ -62,20 +77,28 @@ export default function POS() {
   });
   const [orderNotes, setOrderNotes] = useState('');
   const [receiptContent, setReceiptContent] = useState<string | null>(null);
+  
+  // Customer selection state
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [isNewCustomer, setIsNewCustomer] = useState(true);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    const [productsData, categoriesData, tablesData] = await Promise.all([
+    const [productsData, categoriesData, tablesData, customersData] = await Promise.all([
       db.products.toArray(),
       db.categories.toArray(),
       db.restaurantTables.toArray(),
+      db.customers.toArray(),
     ]);
     setProducts(productsData.filter(p => p.isActive));
     setCategories(categoriesData.filter(c => c.isActive));
     setTables(tablesData.filter(t => t.isActive).map(t => ({ id: t.id!, name: t.name, number: t.number })));
+    setCustomers(customersData);
   };
 
   const filteredProducts = products.filter((product) => {
@@ -234,12 +257,35 @@ export default function POS() {
         });
       }
 
-      // Update stock for stored products
+      // Update stock for stored products and deduct raw materials for prepared products
       for (const item of cart) {
         const product = products.find(p => p.id === item.productId);
         if (product?.type === 'stored') {
           await db.products.update(item.productId, {
             quantity: product.quantity - item.quantity,
+            updatedAt: new Date(),
+          });
+        } else if (product?.type === 'prepared') {
+          // Deduct raw materials for prepared products
+          await deductRawMaterials(item.productId, item.quantity);
+        }
+      }
+      
+      // Save or update customer info
+      if (orderType === 'delivery' && customerInfo.phone) {
+        const existingCustomer = await db.customers.where('phone').equals(customerInfo.phone).first();
+        if (existingCustomer) {
+          await db.customers.update(existingCustomer.id!, {
+            name: customerInfo.name || existingCustomer.name,
+            address: customerInfo.address || existingCustomer.address,
+            updatedAt: new Date(),
+          });
+        } else if (customerInfo.name) {
+          await db.customers.add({
+            name: customerInfo.name,
+            phone: customerInfo.phone,
+            address: customerInfo.address || undefined,
+            createdAt: new Date(),
             updatedAt: new Date(),
           });
         }
@@ -277,6 +323,8 @@ export default function POS() {
       setCustomerInfo({ name: '', phone: '', address: '' });
       setOrderNotes('');
       setIsCheckoutOpen(false);
+      setSelectedCustomerId(null);
+      setIsNewCustomer(true);
 
       toast({ title: 'تم إنشاء الطلب', description: `رقم الطلب: ${orderNumber}` });
       loadData();
@@ -693,12 +741,92 @@ export default function POS() {
           <div className="space-y-4">
             {orderType === 'delivery' && (
               <>
+                {/* Customer Selection Toggle */}
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    variant={isNewCustomer ? 'default' : 'outline'}
+                    onClick={() => {
+                      setIsNewCustomer(true);
+                      setSelectedCustomerId(null);
+                      setCustomerInfo({ name: '', phone: '', address: '' });
+                    }}
+                    className={`flex-1 ${isNewCustomer ? 'gradient-primary text-primary-foreground' : 'border-border'}`}
+                  >
+                    <UserPlus className="w-4 h-4 ml-2" />
+                    عميل جديد
+                  </Button>
+                  <Button
+                    variant={!isNewCustomer ? 'default' : 'outline'}
+                    onClick={() => setIsNewCustomer(false)}
+                    className={`flex-1 ${!isNewCustomer ? 'gradient-primary text-primary-foreground' : 'border-border'}`}
+                    disabled={customers.length === 0}
+                  >
+                    <Users className="w-4 h-4 ml-2" />
+                    عميل مسجل ({customers.length})
+                  </Button>
+                </div>
+
+                {/* Registered Customer Selection */}
+                {!isNewCustomer && customers.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-foreground">اختر عميل مسجل</Label>
+                    <Popover open={customerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start bg-secondary border-border"
+                        >
+                          <Users className="w-4 h-4 ml-2" />
+                          {selectedCustomerId 
+                            ? customers.find(c => c.id === selectedCustomerId)?.name || 'اختر عميل'
+                            : 'اختر عميل'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="ابحث بالاسم أو رقم الهاتف..." />
+                          <CommandList>
+                            <CommandEmpty>لا يوجد عملاء</CommandEmpty>
+                            <CommandGroup>
+                              {customers.map((customer) => (
+                                <CommandItem
+                                  key={customer.id}
+                                  value={`${customer.name} ${customer.phone}`}
+                                  onSelect={() => {
+                                    setSelectedCustomerId(customer.id!);
+                                    setCustomerInfo({
+                                      name: customer.name,
+                                      phone: customer.phone,
+                                      address: customer.address || '',
+                                    });
+                                    setCustomerSearchOpen(false);
+                                  }}
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{customer.name}</span>
+                                    <span className="text-xs text-muted-foreground">{customer.phone}</span>
+                                    {customer.address && (
+                                      <span className="text-xs text-muted-foreground truncate max-w-60">{customer.address}</span>
+                                    )}
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+
+                {/* Customer Info Fields */}
                 <div className="space-y-2">
                   <Label className="text-foreground">اسم العميل *</Label>
                   <Input
                     value={customerInfo.name}
                     onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
                     className="bg-secondary border-border"
+                    readOnly={!isNewCustomer && !!selectedCustomerId}
                   />
                 </div>
                 <div className="space-y-2">
@@ -707,6 +835,7 @@ export default function POS() {
                     value={customerInfo.phone}
                     onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
                     className="bg-secondary border-border"
+                    readOnly={!isNewCustomer && !!selectedCustomerId}
                   />
                 </div>
                 <div className="space-y-2">

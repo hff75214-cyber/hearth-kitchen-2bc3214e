@@ -11,6 +11,7 @@ import POS from "./pages/POS";
 import Tables from "./pages/Tables";
 import TablesView from "./pages/TablesView";
 import Inventory from "./pages/Inventory";
+import Materials from "./pages/Materials";
 import Sales from "./pages/Sales";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/pos" element={<POS />} />
             <Route path="/products" element={<Products />} />
             <Route path="/inventory" element={<Inventory />} />
+            <Route path="/materials" element={<Materials />} />
             <Route path="/tables" element={<Tables />} />
             <Route path="/tables-view" element={<TablesView />} />
             <Route path="/sales" element={<Sales />} />
