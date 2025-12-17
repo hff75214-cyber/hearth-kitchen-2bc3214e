@@ -14,6 +14,9 @@ import Inventory from "./pages/Inventory";
 import Sales from "./pages/Sales";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import Kitchen from "./pages/Kitchen";
+import Customers from "./pages/Customers";
+import Delivery from "./pages/Delivery";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +48,9 @@ const App = () => (
             <Route path="/sales" element={<Sales />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/kitchen" element={<Kitchen />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/delivery" element={<Delivery />} />
           </Routes>
         </MainLayout>
       </BrowserRouter>
