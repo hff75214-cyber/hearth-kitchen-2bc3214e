@@ -11,6 +11,8 @@ import {
   Settings,
   ChevronRight,
   ChevronLeft,
+  BarChart3,
+  Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -19,9 +21,10 @@ const menuItems = [
   { path: '/pos', icon: ShoppingCart, label: 'نقطة البيع' },
   { path: '/products', icon: Package, label: 'المنتجات' },
   { path: '/inventory', icon: Warehouse, label: 'المخزون' },
-  { path: '/tables', icon: UtensilsCrossed, label: 'الطاولات' },
+  { path: '/tables', icon: UtensilsCrossed, label: 'إدارة الطاولات' },
+  { path: '/tables-view', icon: Eye, label: 'عرض الطاولات' },
   { path: '/sales', icon: FileText, label: 'المبيعات' },
-  { path: '/reports', icon: FileText, label: 'التقارير' },
+  { path: '/reports', icon: BarChart3, label: 'التقارير' },
   { path: '/settings', icon: Settings, label: 'الإعدادات' },
 ];
 

@@ -236,40 +236,108 @@ export default function POS() {
   };
 
   const generateReceipt = (order: Order, orderNumber: string): string => {
-    const lines: string[] = [
-      '═══════════════════════════════',
-      '           مطعمي',
-      '═══════════════════════════════',
-      `رقم الطلب: ${orderNumber}`,
-      `التاريخ: ${new Date().toLocaleDateString('ar-EG')}`,
-      `الوقت: ${new Date().toLocaleTimeString('ar-EG')}`,
-      '───────────────────────────────',
-      `النوع: ${order.type === 'dine-in' ? 'طاولة ' + (order.tableName || '') : order.type === 'delivery' ? 'توصيل' : 'استلام'}`,
-      '───────────────────────────────',
-      '',
-    ];
-
-    order.items.forEach(item => {
-      lines.push(`${item.productName}`);
-      lines.push(`  ${item.quantity} × ${item.unitPrice.toFixed(2)} = ${item.total.toFixed(2)} ج.م`);
-    });
-
-    lines.push('');
-    lines.push('───────────────────────────────');
-    lines.push(`المجموع: ${order.subtotal.toFixed(2)} ج.م`);
+    const orderTypeLabel = order.type === 'dine-in' ? `طاولة ${order.tableName || ''}` : order.type === 'delivery' ? 'توصيل' : 'استلام';
+    const paymentLabel = order.paymentMethod === 'cash' ? 'نقدي' : order.paymentMethod === 'card' ? 'بطاقة' : 'محفظة إلكترونية';
     
-    if (order.discount > 0) {
-      lines.push(`الخصم: -${order.discount.toFixed(2)} ج.م`);
-    }
-    
-    lines.push(`الإجمالي: ${order.total.toFixed(2)} ج.م`);
-    lines.push('───────────────────────────────');
-    lines.push(`طريقة الدفع: ${order.paymentMethod === 'cash' ? 'نقدي' : order.paymentMethod === 'card' ? 'بطاقة' : 'محفظة'}`);
-    lines.push('');
-    lines.push('       شكراً لزيارتكم!');
-    lines.push('═══════════════════════════════');
+    const itemsHtml = order.items.map(item => `
+      <tr>
+        <td style="padding: 8px 4px; border-bottom: 1px solid #e5e7eb;">${item.productName}</td>
+        <td style="padding: 8px 4px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
+        <td style="padding: 8px 4px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.unitPrice.toFixed(2)}</td>
+        <td style="padding: 8px 4px; border-bottom: 1px solid #e5e7eb; text-align: left; font-weight: 600;">${item.total.toFixed(2)}</td>
+      </tr>
+    `).join('');
 
-    return lines.join('\n');
+    return `
+      <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 350px; margin: 0 auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 3px; border-radius: 16px;">
+        <div style="background: white; border-radius: 14px; overflow: hidden;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; text-align: center;">
+            <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 28px;">🍽️</span>
+            </div>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 700;">مطعمي</h1>
+            <p style="margin: 8px 0 0; opacity: 0.9; font-size: 14px;">فاتورة ضريبية</p>
+          </div>
+
+          <!-- Order Info -->
+          <div style="padding: 20px; background: #f8f9fa;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="color: #6b7280; font-size: 13px;">رقم الطلب</span>
+              <span style="font-weight: 700; color: #667eea;">#${orderNumber}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="color: #6b7280; font-size: 13px;">التاريخ</span>
+              <span style="font-weight: 500;">${new Date().toLocaleDateString('ar-EG')}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="color: #6b7280; font-size: 13px;">الوقت</span>
+              <span style="font-weight: 500;">${new Date().toLocaleTimeString('ar-EG')}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #6b7280; font-size: 13px;">نوع الطلب</span>
+              <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">${orderTypeLabel}</span>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <div style="padding: 20px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;" dir="rtl">
+              <thead>
+                <tr style="background: #f3f4f6;">
+                  <th style="padding: 12px 4px; text-align: right; font-weight: 600; color: #374151; border-radius: 8px 0 0 0;">الصنف</th>
+                  <th style="padding: 12px 4px; text-align: center; font-weight: 600; color: #374151;">الكمية</th>
+                  <th style="padding: 12px 4px; text-align: center; font-weight: 600; color: #374151;">السعر</th>
+                  <th style="padding: 12px 4px; text-align: left; font-weight: 600; color: #374151; border-radius: 0 8px 0 0;">المجموع</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsHtml}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Totals -->
+          <div style="padding: 0 20px 20px;">
+            <div style="background: #f8f9fa; border-radius: 12px; padding: 16px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #6b7280;">المجموع الفرعي</span>
+                <span style="font-weight: 500;">${order.subtotal.toFixed(2)} ج.م</span>
+              </div>
+              ${order.discount > 0 ? `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #10b981;">
+                  <span>الخصم</span>
+                  <span style="font-weight: 500;">- ${order.discount.toFixed(2)} ج.م</span>
+                </div>
+              ` : ''}
+              <div style="border-top: 2px dashed #e5e7eb; margin: 12px 0; padding-top: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 18px; font-weight: 700; color: #374151;">الإجمالي</span>
+                  <span style="font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">${order.total.toFixed(2)} ج.م</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Method -->
+          <div style="padding: 0 20px 20px;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; background: #ecfdf5; border-radius: 8px; color: #059669;">
+              <span style="font-size: 18px;">✓</span>
+              <span style="font-weight: 600;">تم الدفع - ${paymentLabel}</span>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center;">
+            <p style="margin: 0 0 8px; font-size: 16px; font-weight: 600;">شكراً لزيارتكم! 🙏</p>
+            <p style="margin: 0; font-size: 12px; opacity: 0.9;">نتمنى لكم وجبة شهية</p>
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.2);">
+              <p style="margin: 0; font-size: 11px; opacity: 0.8;">هذه الفاتورة صادرة إلكترونياً</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   };
 
   const printReceipt = () => {
@@ -277,11 +345,23 @@ export default function POS() {
       const printWindow = window.open('', '_blank');
       if (printWindow) {
         printWindow.document.write(`
-          <html dir="rtl">
+          <!DOCTYPE html>
+          <html dir="rtl" lang="ar">
             <head>
+              <meta charset="UTF-8">
               <title>فاتورة</title>
               <style>
-                body { font-family: monospace; white-space: pre; font-size: 14px; padding: 20px; }
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { 
+                  font-family: 'Segoe UI', Tahoma, sans-serif;
+                  padding: 20px;
+                  background: #f5f5f5;
+                  display: flex;
+                  justify-content: center;
+                }
+                @media print {
+                  body { background: white; padding: 0; }
+                }
               </style>
             </head>
             <body>${receiptContent}</body>
@@ -642,14 +722,15 @@ export default function POS() {
 
       {/* Receipt Dialog */}
       <Dialog open={!!receiptContent} onOpenChange={() => setReceiptContent(null)}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
             <DialogTitle className="text-foreground">الفاتورة</DialogTitle>
           </DialogHeader>
 
-          <pre className="p-4 rounded-lg bg-secondary/50 text-foreground text-sm whitespace-pre-wrap font-mono">
-            {receiptContent}
-          </pre>
+          <div 
+            className="max-h-[60vh] overflow-y-auto rounded-lg"
+            dangerouslySetInnerHTML={{ __html: receiptContent || '' }}
+          />
 
           <div className="flex gap-3">
             <Button

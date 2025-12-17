@@ -46,8 +46,9 @@ export default function Inventory() {
 
   const loadData = async () => {
     // Only get stored products (not prepared items)
-    const productsData = await db.products.where('type').equals('stored').toArray();
-    setProducts(productsData);
+    const allProducts = await db.products.toArray();
+    const storedProducts = allProducts.filter(p => p.type === 'stored' && p.isActive);
+    setProducts(storedProducts);
   };
 
   const filteredProducts = products.filter((product) => {
