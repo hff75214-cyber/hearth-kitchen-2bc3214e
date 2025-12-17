@@ -116,6 +116,7 @@ export default function POS() {
         costPrice: product.costPrice,
         discount: 0,
         total: product.salePrice,
+        preparationTime: product.type === 'prepared' ? product.preparationTime : undefined,
       }]);
     }
   };
