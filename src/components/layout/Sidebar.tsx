@@ -26,6 +26,7 @@ const menuItems = [
   { path: '/products', icon: Package, label: 'المنتجات' },
   { path: '/inventory', icon: Warehouse, label: 'المخزون' },
   { path: '/materials', icon: Boxes, label: 'المواد الخام' },
+  { path: '/materials-report', icon: BarChart3, label: 'تقرير المواد' },
   { path: '/tables', icon: UtensilsCrossed, label: 'إدارة الطاولات' },
   { path: '/tables-view', icon: Eye, label: 'عرض الطاولات' },
   { path: '/kitchen', icon: ChefHat, label: 'شاشة المطبخ' },
