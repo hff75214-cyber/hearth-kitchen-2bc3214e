@@ -49,7 +49,7 @@ export interface RestaurantTable {
 
 export interface Notification {
   id?: number;
-  type: 'low_stock' | 'table_time' | 'new_order' | 'order_ready' | 'system';
+  type: 'low_stock' | 'table_time' | 'new_order' | 'order_ready' | 'system' | 'raw_material_low';
   title: string;
   message: string;
   relatedId?: number;
@@ -121,6 +121,39 @@ export interface DailySummary {
   walletPayments: number;
 }
 
+// جدول العملاء
+export interface Customer {
+  id?: number;
+  name: string;
+  phone: string;
+  address?: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// جدول المواد الخام
+export interface RawMaterial {
+  id?: number;
+  name: string;
+  unit: string; // كيلو، لتر، قطعة، إلخ
+  quantity: number;
+  minQuantityAlert: number;
+  costPerUnit: number;
+  description?: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// جدول مكونات المنتج (ربط المنتج بالمواد الخام)
+export interface ProductIngredient {
+  id?: number;
+  productId: number;
+  rawMaterialId: number;
+  quantityUsed: number; // الكمية المستخدمة من المادة الخام لكل وحدة من المنتج
+}
+
 // Database Class
 class RestaurantDatabase extends Dexie {
   products!: Table<Product>;
@@ -130,18 +163,24 @@ class RestaurantDatabase extends Dexie {
   settings!: Table<Settings>;
   dailySummaries!: Table<DailySummary>;
   notifications!: Table<Notification>;
+  customers!: Table<Customer>;
+  rawMaterials!: Table<RawMaterial>;
+  productIngredients!: Table<ProductIngredient>;
 
   constructor() {
     super('RestaurantPOS');
     
-    this.version(2).stores({
+    this.version(3).stores({
       products: '++id, name, category, subcategory, type, sku, barcode, isActive',
       categories: '++id, name, type, order, isActive',
       restaurantTables: '++id, number, status, isActive',
       orders: '++id, orderNumber, type, tableId, status, createdAt, paymentMethod',
       settings: '++id',
       dailySummaries: '++id, date',
-      notifications: '++id, type, isRead, createdAt'
+      notifications: '++id, type, isRead, createdAt',
+      customers: '++id, name, phone',
+      rawMaterials: '++id, name, isActive',
+      productIngredients: '++id, productId, rawMaterialId'
     });
   }
 }
@@ -227,6 +266,52 @@ export async function checkLowStock(): Promise<void> {
       });
     }
   }
+}
+
+// Check raw materials low stock
+export async function checkRawMaterialsStock(): Promise<void> {
+  const materials = await db.rawMaterials
+    .filter(m => m.isActive && m.quantity <= m.minQuantityAlert)
+    .toArray();
+
+  for (const material of materials) {
+    const existingNotification = await db.notifications
+      .where('type')
+      .equals('raw_material_low')
+      .and(n => n.relatedId === material.id && !n.isRead)
+      .first();
+    
+    if (!existingNotification) {
+      await addNotification({
+        type: 'raw_material_low',
+        title: `نفاد مادة خام: ${material.name}`,
+        message: `الكمية المتبقية: ${material.quantity} ${material.unit}. الحد الأدنى: ${material.minQuantityAlert}`,
+        relatedId: material.id,
+      });
+    }
+  }
+}
+
+// Deduct raw materials when selling a prepared product
+export async function deductRawMaterials(productId: number, quantity: number): Promise<void> {
+  const ingredients = await db.productIngredients
+    .where('productId')
+    .equals(productId)
+    .toArray();
+
+  for (const ingredient of ingredients) {
+    const material = await db.rawMaterials.get(ingredient.rawMaterialId);
+    if (material) {
+      const newQuantity = Math.max(0, material.quantity - (ingredient.quantityUsed * quantity));
+      await db.rawMaterials.update(ingredient.rawMaterialId, {
+        quantity: newQuantity,
+        updatedAt: new Date(),
+      });
+    }
+  }
+
+  // Check for low stock after deduction
+  await checkRawMaterialsStock();
 }
 
 export const db = new RestaurantDatabase();

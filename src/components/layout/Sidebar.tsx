@@ -13,6 +13,10 @@ import {
   ChevronLeft,
   BarChart3,
   Eye,
+  Users,
+  Truck,
+  ChefHat,
+  Boxes,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,11 +25,12 @@ const menuItems = [
   { path: '/pos', icon: ShoppingCart, label: 'نقطة البيع' },
   { path: '/products', icon: Package, label: 'المنتجات' },
   { path: '/inventory', icon: Warehouse, label: 'المخزون' },
+  { path: '/materials', icon: Boxes, label: 'المواد الخام' },
   { path: '/tables', icon: UtensilsCrossed, label: 'إدارة الطاولات' },
   { path: '/tables-view', icon: Eye, label: 'عرض الطاولات' },
-  { path: '/kitchen', icon: UtensilsCrossed, label: 'شاشة المطبخ' },
-  { path: '/delivery', icon: ShoppingCart, label: 'التوصيل' },
-  { path: '/customers', icon: LayoutDashboard, label: 'العملاء' },
+  { path: '/kitchen', icon: ChefHat, label: 'شاشة المطبخ' },
+  { path: '/delivery', icon: Truck, label: 'التوصيل' },
+  { path: '/customers', icon: Users, label: 'العملاء' },
   { path: '/sales', icon: FileText, label: 'المبيعات' },
   { path: '/reports', icon: BarChart3, label: 'التقارير' },
   { path: '/settings', icon: Settings, label: 'الإعدادات' },
