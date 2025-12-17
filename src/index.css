@@ -7,7 +7,66 @@
 /* Restaurant POS Design System - Dark Theme with Warm Amber Accents */
 
 @layer base {
+  /* Light Theme */
   :root {
+    --background: 40 30% 97%;
+    --foreground: 220 20% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 15%;
+
+    --primary: 35 95% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 40 20% 93%;
+    --secondary-foreground: 220 20% 15%;
+
+    --muted: 40 15% 90%;
+    --muted-foreground: 220 10% 45%;
+
+    --accent: 35 95% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 45 93% 47%;
+    --warning-foreground: 220 20% 10%;
+
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 40 15% 85%;
+    --input: 40 15% 85%;
+    --ring: 35 95% 50%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 40 25% 95%;
+    --sidebar-foreground: 220 20% 15%;
+    --sidebar-primary: 35 95% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 40 20% 90%;
+    --sidebar-accent-foreground: 220 20% 15%;
+    --sidebar-border: 40 15% 85%;
+    --sidebar-ring: 35 95% 50%;
+
+    /* Custom tokens */
+    --gradient-primary: linear-gradient(135deg, hsl(35 95% 50%) 0%, hsl(25 95% 45%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(40 20% 97%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(152 76% 30%) 100%);
+    --shadow-glow: 0 0 30px hsl(35 95% 50% / 0.2);
+    --shadow-card: 0 4px 20px hsl(220 20% 15% / 0.08);
+  }
+
+  /* Dark Theme */
+  .dark {
     --background: 220 20% 10%;
     --foreground: 40 20% 95%;
 
@@ -44,8 +103,6 @@
     --border: 220 15% 22%;
     --input: 220 15% 22%;
     --ring: 35 95% 55%;
-
-    --radius: 0.75rem;
 
     --sidebar-background: 220 20% 8%;
     --sidebar-foreground: 40 20% 95%;

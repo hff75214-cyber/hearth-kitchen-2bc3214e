@@ -69,13 +69,13 @@ export default function POS() {
 
   const loadData = async () => {
     const [productsData, categoriesData, tablesData] = await Promise.all([
-      db.products.where('isActive').equals(1).toArray(),
-      db.categories.where('isActive').equals(1).toArray(),
-      db.restaurantTables.where('isActive').equals(1).toArray(),
+      db.products.toArray(),
+      db.categories.toArray(),
+      db.restaurantTables.toArray(),
     ]);
-    setProducts(productsData);
-    setCategories(categoriesData);
-    setTables(tablesData.map(t => ({ id: t.id!, name: t.name, number: t.number })));
+    setProducts(productsData.filter(p => p.isActive));
+    setCategories(categoriesData.filter(c => c.isActive));
+    setTables(tablesData.filter(t => t.isActive).map(t => ({ id: t.id!, name: t.name, number: t.number })));
   };
 
   const filteredProducts = products.filter((product) => {
