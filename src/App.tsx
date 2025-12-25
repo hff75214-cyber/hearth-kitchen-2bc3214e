@@ -22,6 +22,8 @@ import Customers from "./pages/Customers";
 import Delivery from "./pages/Delivery";
 import Login from "./pages/Login";
 import Users from "./pages/Users";
+import ActivityLog from "./pages/ActivityLog";
+import Shifts from "./pages/Shifts";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +55,8 @@ const routePermissions: Record<string, PagePermission> = {
   '/reports': 'reports',
   '/settings': 'settings',
   '/users': 'users',
+  '/activity-log': 'activity-log',
+  '/shifts': 'shifts',
 };
 
 // Protected Route Component
@@ -269,6 +273,24 @@ const App = () => {
                 <ProtectedRoute 
                   element={<Users />} 
                   requiredPermission="users" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/activity-log" element={
+                <ProtectedRoute 
+                  element={<ActivityLog />} 
+                  requiredPermission="activity-log" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/shifts" element={
+                <ProtectedRoute 
+                  element={<Shifts />} 
+                  requiredPermission="shifts" 
                   userPermissions={userPermissions}
                   defaultPath={defaultPath}
                 />
