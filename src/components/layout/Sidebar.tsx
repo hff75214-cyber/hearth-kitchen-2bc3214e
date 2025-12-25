@@ -18,6 +18,8 @@ import {
   ChefHat,
   Boxes,
   UserCog,
+  Activity,
+  Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PagePermission } from '@/lib/database';
@@ -44,6 +46,8 @@ const allMenuItems: MenuItem[] = [
   { path: '/sales', icon: FileText, label: 'المبيعات', permission: 'sales' },
   { path: '/reports', icon: BarChart3, label: 'التقارير', permission: 'reports' },
   { path: '/users', icon: UserCog, label: 'المستخدمين', permission: 'users' },
+  { path: '/activity-log', icon: Activity, label: 'سجل النشاط', permission: 'activity-log' },
+  { path: '/shifts', icon: Clock, label: 'ورديات العمل', permission: 'shifts' },
   { path: '/settings', icon: Settings, label: 'الإعدادات', permission: 'settings' },
 ];
 

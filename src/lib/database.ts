@@ -173,7 +173,9 @@ export type PagePermission =
   | 'sales' 
   | 'reports' 
   | 'settings'
-  | 'users';
+  | 'users'
+  | 'activity-log'
+  | 'shifts';
 
 // جدول المستخدمين المحليين
 export interface SystemUser {
@@ -187,9 +189,55 @@ export interface SystemUser {
   updatedAt: Date;
 }
 
+// أنواع النشاط
+export type ActivityType = 
+  | 'login' 
+  | 'logout' 
+  | 'sale' 
+  | 'refund' 
+  | 'product_add' 
+  | 'product_edit' 
+  | 'product_delete'
+  | 'customer_add'
+  | 'order_cancel'
+  | 'shift_start'
+  | 'shift_end'
+  | 'settings_change'
+  | 'user_add'
+  | 'user_edit';
+
+// جدول سجل النشاط
+export interface ActivityLog {
+  id?: number;
+  userId: number;
+  userName: string;
+  userRole: UserRole;
+  type: ActivityType;
+  description: string;
+  details?: string; // JSON string for additional data
+  amount?: number; // For sales
+  orderId?: number;
+  createdAt: Date;
+}
+
+// جدول ورديات العمل
+export interface WorkShift {
+  id?: number;
+  userId: number;
+  userName: string;
+  userRole: UserRole;
+  startTime: Date;
+  endTime?: Date;
+  totalHours?: number;
+  totalSales?: number;
+  totalOrders?: number;
+  notes?: string;
+  isActive: boolean;
+}
+
 // الصلاحيات الافتراضية لكل دور
 export const defaultPermissionsByRole: Record<UserRole, PagePermission[]> = {
-  admin: ['dashboard', 'pos', 'products', 'inventory', 'materials', 'materials-report', 'tables', 'tables-view', 'kitchen', 'delivery', 'customers', 'sales', 'reports', 'settings', 'users'],
+  admin: ['dashboard', 'pos', 'products', 'inventory', 'materials', 'materials-report', 'tables', 'tables-view', 'kitchen', 'delivery', 'customers', 'sales', 'reports', 'settings', 'users', 'activity-log', 'shifts'],
   cashier: ['pos', 'customers'],
   kitchen: ['kitchen'],
   waiter: ['pos', 'tables', 'tables-view'],
@@ -222,6 +270,26 @@ export const pageNames: Record<PagePermission, string> = {
   reports: 'التقارير',
   settings: 'الإعدادات',
   users: 'المستخدمين',
+  'activity-log': 'سجل النشاط',
+  shifts: 'ورديات العمل',
+};
+
+// أسماء أنواع النشاط بالعربي
+export const activityTypeNames: Record<ActivityType, string> = {
+  login: 'تسجيل دخول',
+  logout: 'تسجيل خروج',
+  sale: 'عملية بيع',
+  refund: 'استرجاع',
+  product_add: 'إضافة منتج',
+  product_edit: 'تعديل منتج',
+  product_delete: 'حذف منتج',
+  customer_add: 'إضافة عميل',
+  order_cancel: 'إلغاء طلب',
+  shift_start: 'بدء وردية',
+  shift_end: 'إنهاء وردية',
+  settings_change: 'تغيير إعدادات',
+  user_add: 'إضافة مستخدم',
+  user_edit: 'تعديل مستخدم',
 };
 
 // الصفحة الافتراضية لكل دور
@@ -246,11 +314,13 @@ class RestaurantDatabase extends Dexie {
   rawMaterials!: Table<RawMaterial>;
   productIngredients!: Table<ProductIngredient>;
   systemUsers!: Table<SystemUser>;
+  activityLogs!: Table<ActivityLog>;
+  workShifts!: Table<WorkShift>;
 
   constructor() {
     super('RestaurantPOS');
     
-    this.version(5).stores({
+    this.version(6).stores({
       products: '++id, name, category, subcategory, type, sku, barcode, isActive',
       categories: '++id, name, type, order, isActive',
       restaurantTables: '++id, number, status, isActive',
@@ -261,9 +331,109 @@ class RestaurantDatabase extends Dexie {
       customers: '++id, name, phone',
       rawMaterials: '++id, name, isActive',
       productIngredients: '++id, productId, rawMaterialId',
-      systemUsers: '++id, name, role, isActive'
+      systemUsers: '++id, name, role, isActive',
+      activityLogs: '++id, userId, type, createdAt',
+      workShifts: '++id, userId, isActive, startTime'
     });
   }
+}
+
+// Helper function to log activity
+export async function logActivity(
+  user: { id: number; name: string; role: UserRole },
+  type: ActivityType,
+  description: string,
+  details?: object,
+  amount?: number,
+  orderId?: number
+): Promise<void> {
+  await db.activityLogs.add({
+    userId: user.id,
+    userName: user.name,
+    userRole: user.role,
+    type,
+    description,
+    details: details ? JSON.stringify(details) : undefined,
+    amount,
+    orderId,
+    createdAt: new Date(),
+  });
+}
+
+// Helper function to start a work shift
+export async function startWorkShift(user: { id: number; name: string; role: UserRole }): Promise<number> {
+  // End any active shifts for this user
+  const activeShift = await db.workShifts
+    .where('userId')
+    .equals(user.id)
+    .and(s => s.isActive)
+    .first();
+  
+  if (activeShift) {
+    await endWorkShift(user.id);
+  }
+  
+  const shiftId = await db.workShifts.add({
+    userId: user.id,
+    userName: user.name,
+    userRole: user.role,
+    startTime: new Date(),
+    isActive: true,
+    totalSales: 0,
+    totalOrders: 0,
+  });
+  
+  await logActivity(user, 'shift_start', `بدأ وردية عمل جديدة`);
+  
+  return shiftId as number;
+}
+
+// Helper function to end a work shift
+export async function endWorkShift(userId: number): Promise<void> {
+  const activeShift = await db.workShifts
+    .where('userId')
+    .equals(userId)
+    .and(s => s.isActive)
+    .first();
+  
+  if (activeShift) {
+    const endTime = new Date();
+    const startTime = new Date(activeShift.startTime);
+    const totalHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+    
+    // Calculate sales during this shift
+    const shiftOrders = await db.orders
+      .where('createdAt')
+      .between(startTime, endTime)
+      .and(o => o.status === 'completed')
+      .toArray();
+    
+    const totalSales = shiftOrders.reduce((sum, o) => sum + o.total, 0);
+    const totalOrders = shiftOrders.length;
+    
+    await db.workShifts.update(activeShift.id!, {
+      endTime,
+      totalHours: Math.round(totalHours * 100) / 100,
+      totalSales,
+      totalOrders,
+      isActive: false,
+    });
+    
+    await logActivity(
+      { id: userId, name: activeShift.userName, role: activeShift.userRole },
+      'shift_end',
+      `أنهى وردية العمل - ${totalHours.toFixed(2)} ساعة`
+    );
+  }
+}
+
+// Get active shift for user
+export async function getActiveShift(userId: number): Promise<WorkShift | undefined> {
+  return await db.workShifts
+    .where('userId')
+    .equals(userId)
+    .and(s => s.isActive)
+    .first();
 }
 
 // Helper function to calculate product cost from ingredients
