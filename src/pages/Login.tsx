@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { User, Lock, LogIn, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { db } from '@/lib/database';
+import { db, SystemUser, defaultPermissionsByRole, defaultPageByRole, roleNames } from '@/lib/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,14 +10,7 @@ import { VirtualKeyboard, KeyboardToggle } from '@/components/VirtualKeyboard';
 import { toast } from '@/hooks/use-toast';
 
 interface LoginProps {
-  onLogin: (userName: string) => void;
-}
-
-interface SystemUser {
-  id?: number;
-  name: string;
-  password: string;
-  createdAt: Date;
+  onLogin: (user: SystemUser) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
@@ -43,13 +36,10 @@ export default function Login({ onLogin }: LoginProps) {
   };
 
   const checkFirstTimeSetup = async () => {
-    // Check if there are any users in the system
-    const usersTable = db.table('systemUsers');
     try {
-      const count = await usersTable.count();
+      const count = await db.systemUsers.count();
       setIsFirstTime(count === 0);
     } catch {
-      // Table doesn't exist yet, it's first time
       setIsFirstTime(true);
     }
   };
@@ -58,7 +48,6 @@ export default function Login({ onLogin }: LoginProps) {
     if (activeInput === 'name') {
       setName(prev => prev + key);
     } else if (activeInput === 'password') {
-      // Only allow digits 0-9 for password
       if (/^[0-9]$/.test(key)) {
         if (password.length < 10) {
           setPassword(prev => prev + key);
@@ -99,36 +88,49 @@ export default function Login({ onLogin }: LoginProps) {
     setIsLoading(true);
 
     try {
-      // Get or create systemUsers table
-      const usersTable = db.table('systemUsers');
-      
       if (isFirstTime) {
-        // First time - create the user
-        await usersTable.add({
+        // First time - create admin user
+        const newUser: SystemUser = {
           name: name.trim(),
           password: password,
+          role: 'admin',
+          permissions: [...defaultPermissionsByRole.admin],
+          isActive: true,
           createdAt: new Date(),
-        } as SystemUser);
+          updatedAt: new Date(),
+        };
+        
+        const id = await db.systemUsers.add(newUser);
+        newUser.id = id as number;
         
         toast({
           title: 'مرحباً بك!',
-          description: 'تم إنشاء حسابك بنجاح',
+          description: 'تم إنشاء حساب المدير بنجاح',
         });
         
-        onLogin(name.trim());
+        onLogin(newUser);
       } else {
         // Check credentials
-        const user = await usersTable
+        const user = await db.systemUsers
           .where('name')
           .equals(name.trim())
-          .first() as SystemUser | undefined;
+          .first();
         
         if (user && user.password === password) {
+          if (!user.isActive) {
+            toast({
+              title: 'خطأ',
+              description: 'هذا الحساب غير نشط. تواصل مع المدير.',
+              variant: 'destructive',
+            });
+            return;
+          }
+          
           toast({
             title: 'مرحباً بك!',
-            description: `أهلاً ${user.name}`,
+            description: `أهلاً ${user.name} (${roleNames[user.role]})`,
           });
-          onLogin(user.name);
+          onLogin(user);
         } else {
           toast({
             title: 'خطأ',
@@ -150,7 +152,6 @@ export default function Login({ onLogin }: LoginProps) {
   };
 
   const handlePasswordChange = (value: string) => {
-    // Only allow digits 0-9 and max 10 characters
     const filtered = value.replace(/[^0-9]/g, '').slice(0, 10);
     setPassword(filtered);
   };
@@ -185,7 +186,7 @@ export default function Login({ onLogin }: LoginProps) {
                 {restaurantName}
               </h1>
               <p className="text-muted-foreground">
-                {isFirstTime ? 'إنشاء حساب جديد' : 'تسجيل الدخول للنظام'}
+                {isFirstTime ? 'إنشاء حساب المدير' : 'تسجيل الدخول للنظام'}
               </p>
             </motion.div>
 
@@ -276,7 +277,7 @@ export default function Login({ onLogin }: LoginProps) {
                   ) : (
                     <>
                       <LogIn className="w-5 h-5 ml-2" />
-                      {isFirstTime ? 'إنشاء حساب والدخول' : 'تسجيل الدخول'}
+                      {isFirstTime ? 'إنشاء حساب المدير' : 'تسجيل الدخول'}
                     </>
                   )}
                 </Button>
@@ -290,7 +291,10 @@ export default function Login({ onLogin }: LoginProps) {
               transition={{ delay: 0.6 }}
               className="text-center text-xs text-muted-foreground mt-6"
             >
-              نظام نقاط البيع المحلي - جميع البيانات مخزنة على جهازك
+              {isFirstTime 
+                ? 'سيتم إنشاء حساب مدير بجميع الصلاحيات'
+                : 'نظام نقاط البيع المحلي - جميع البيانات مخزنة على جهازك'
+              }
             </motion.p>
           </CardContent>
         </Card>
