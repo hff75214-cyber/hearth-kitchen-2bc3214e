@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -11,8 +11,9 @@ import {
   X,
   Check,
   Boxes,
+  Calculator,
 } from 'lucide-react';
-import { db, Product, Category, RawMaterial, ProductIngredient, generateSKU, generateBarcode } from '@/lib/database';
+import { db, Product, Category, RawMaterial, ProductIngredient, generateSKU, generateBarcode, calculateCostFromIngredients } from '@/lib/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ interface IngredientInput {
   quantityUsed: number;
   materialName?: string;
   unit?: string;
+  costPerUnit?: number;
 }
 
 export default function Products() {
@@ -51,6 +53,8 @@ export default function Products() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [ingredients, setIngredients] = useState<IngredientInput[]>([]);
+  const [calculatedCost, setCalculatedCost] = useState<number>(0);
+  const [isCalculating, setIsCalculating] = useState(false);
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
     category: '',
@@ -183,6 +187,7 @@ export default function Products() {
   const resetForm = () => {
     setEditingProduct(null);
     setIngredients([]);
+    setCalculatedCost(0);
     setFormData({
       name: '',
       category: '',
@@ -203,11 +208,13 @@ export default function Products() {
   };
 
   const addIngredient = () => {
-    setIngredients([...ingredients, { rawMaterialId: 0, quantityUsed: 0 }]);
+    setIngredients([...ingredients, { rawMaterialId: 0, quantityUsed: 0, costPerUnit: 0 }]);
   };
 
   const removeIngredient = (index: number) => {
-    setIngredients(ingredients.filter((_, i) => i !== index));
+    const updated = ingredients.filter((_, i) => i !== index);
+    setIngredients(updated);
+    recalculateCost(updated);
   };
 
   const updateIngredient = (index: number, field: keyof IngredientInput, value: number) => {
@@ -219,11 +226,37 @@ export default function Products() {
         rawMaterialId: value,
         materialName: material?.name,
         unit: material?.unit,
+        costPerUnit: material?.costPerUnit || 0,
       };
     } else {
       updated[index] = { ...updated[index], [field]: value };
     }
     setIngredients(updated);
+    recalculateCost(updated);
+  };
+
+  // Recalculate cost when ingredients change
+  const recalculateCost = useCallback(async (ingredientsList: IngredientInput[]) => {
+    setIsCalculating(true);
+    try {
+      const cost = await calculateCostFromIngredients(
+        ingredientsList.map(i => ({ rawMaterialId: i.rawMaterialId, quantityUsed: i.quantityUsed }))
+      );
+      setCalculatedCost(cost);
+    } catch (error) {
+      console.error('Error calculating cost:', error);
+    } finally {
+      setIsCalculating(false);
+    }
+  }, []);
+
+  // Apply calculated cost to form
+  const applyCalculatedCost = () => {
+    setFormData(prev => ({ ...prev, costPrice: calculatedCost }));
+    toast({
+      title: 'تم تطبيق التكلفة',
+      description: `تم تحديث سعر التكلفة إلى ${calculatedCost.toFixed(2)} ج.م`,
+    });
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -545,7 +578,7 @@ export default function Products() {
                             <SelectContent>
                               {rawMaterials.map((material) => (
                                 <SelectItem key={material.id} value={String(material.id)}>
-                                  {material.name} ({material.unit})
+                                  {material.name} ({material.unit}) - {material.costPerUnit.toFixed(2)} ج.م
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -562,6 +595,11 @@ export default function Products() {
                           {ingredient.unit && (
                             <span className="text-sm text-muted-foreground w-12">{ingredient.unit}</span>
                           )}
+                          {ingredient.costPerUnit && ingredient.quantityUsed > 0 && (
+                            <span className="text-xs text-primary font-medium w-20">
+                              = {(ingredient.costPerUnit * ingredient.quantityUsed).toFixed(2)} ج.م
+                            </span>
+                          )}
                           <Button
                             type="button"
                             size="icon"
@@ -573,6 +611,33 @@ export default function Products() {
                           </Button>
                         </div>
                       ))}
+                      
+                      {/* Calculated Cost Display */}
+                      {ingredients.length > 0 && (
+                        <div className="mt-4 p-3 rounded-lg bg-info/10 border border-info/30">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Calculator className="w-4 h-4 text-info" />
+                              <span className="text-sm text-info">التكلفة المحسوبة من المواد الخام:</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-info">
+                                {isCalculating ? '...' : `${calculatedCost.toFixed(2)} ج.م`}
+                              </span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={applyCalculatedCost}
+                                disabled={isCalculating || calculatedCost === 0}
+                                className="h-7 text-xs border-info text-info hover:bg-info/10"
+                              >
+                                تطبيق
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -607,7 +672,14 @@ export default function Products() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-foreground">سعر التكلفة *</Label>
+                <Label className="text-foreground flex items-center justify-between">
+                  <span>سعر التكلفة *</span>
+                  {formData.type === 'prepared' && calculatedCost > 0 && formData.costPrice !== calculatedCost && (
+                    <span className="text-xs text-info">
+                      (التكلفة المحسوبة: {calculatedCost.toFixed(2)} ج.م)
+                    </span>
+                  )}
+                </Label>
                 <Input
                   type="number"
                   step="0.01"
