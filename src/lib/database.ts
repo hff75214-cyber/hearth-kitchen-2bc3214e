@@ -154,6 +154,14 @@ export interface ProductIngredient {
   quantityUsed: number; // الكمية المستخدمة من المادة الخام لكل وحدة من المنتج
 }
 
+// جدول المستخدمين المحليين
+export interface SystemUser {
+  id?: number;
+  name: string;
+  password: string;
+  createdAt: Date;
+}
+
 // Database Class
 class RestaurantDatabase extends Dexie {
   products!: Table<Product>;
@@ -166,11 +174,12 @@ class RestaurantDatabase extends Dexie {
   customers!: Table<Customer>;
   rawMaterials!: Table<RawMaterial>;
   productIngredients!: Table<ProductIngredient>;
+  systemUsers!: Table<SystemUser>;
 
   constructor() {
     super('RestaurantPOS');
     
-    this.version(3).stores({
+    this.version(4).stores({
       products: '++id, name, category, subcategory, type, sku, barcode, isActive',
       categories: '++id, name, type, order, isActive',
       restaurantTables: '++id, number, status, isActive',
@@ -180,9 +189,47 @@ class RestaurantDatabase extends Dexie {
       notifications: '++id, type, isRead, createdAt',
       customers: '++id, name, phone',
       rawMaterials: '++id, name, isActive',
-      productIngredients: '++id, productId, rawMaterialId'
+      productIngredients: '++id, productId, rawMaterialId',
+      systemUsers: '++id, name'
     });
   }
+}
+
+// Helper function to calculate product cost from ingredients
+export async function calculateProductCost(productId: number): Promise<number> {
+  const ingredients = await db.productIngredients
+    .where('productId')
+    .equals(productId)
+    .toArray();
+  
+  let totalCost = 0;
+  
+  for (const ingredient of ingredients) {
+    const material = await db.rawMaterials.get(ingredient.rawMaterialId);
+    if (material) {
+      totalCost += material.costPerUnit * ingredient.quantityUsed;
+    }
+  }
+  
+  return totalCost;
+}
+
+// Helper function to calculate cost from ingredients array (for form preview)
+export async function calculateCostFromIngredients(
+  ingredients: Array<{ rawMaterialId: number; quantityUsed: number }>
+): Promise<number> {
+  let totalCost = 0;
+  
+  for (const ingredient of ingredients) {
+    if (ingredient.rawMaterialId && ingredient.quantityUsed > 0) {
+      const material = await db.rawMaterials.get(ingredient.rawMaterialId);
+      if (material) {
+        totalCost += material.costPerUnit * ingredient.quantityUsed;
+      }
+    }
+  }
+  
+  return totalCost;
 }
 
 // Helper function to generate SKU

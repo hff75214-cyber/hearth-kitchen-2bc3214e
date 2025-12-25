@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import Kitchen from "./pages/Kitchen";
 import Customers from "./pages/Customers";
 import Delivery from "./pages/Delivery";
+import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
 
@@ -33,33 +34,71 @@ const initTheme = () => {
 };
 initTheme();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <MainLayout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/pos" element={<POS />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/inventory" element={<Inventory />} />
-            <Route path="/materials" element={<Materials />} />
-            <Route path="/materials-report" element={<MaterialsReport />} />
-            <Route path="/tables" element={<Tables />} />
-            <Route path="/tables-view" element={<TablesView />} />
-            <Route path="/sales" element={<Sales />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/kitchen" element={<Kitchen />} />
-            <Route path="/customers" element={<Customers />} />
-            <Route path="/delivery" element={<Delivery />} />
-          </Routes>
-        </MainLayout>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      setUserName(savedUser);
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  const handleLogin = (name: string) => {
+    localStorage.setItem('currentUser', name);
+    setUserName(name);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser');
+    setUserName('');
+    setIsLoggedIn(false);
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Login onLogin={handleLogin} />
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <MainLayout userName={userName} onLogout={handleLogout}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/pos" element={<POS />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/inventory" element={<Inventory />} />
+              <Route path="/materials" element={<Materials />} />
+              <Route path="/materials-report" element={<MaterialsReport />} />
+              <Route path="/tables" element={<Tables />} />
+              <Route path="/tables-view" element={<TablesView />} />
+              <Route path="/sales" element={<Sales />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/kitchen" element={<Kitchen />} />
+              <Route path="/customers" element={<Customers />} />
+              <Route path="/delivery" element={<Delivery />} />
+            </Routes>
+          </MainLayout>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
