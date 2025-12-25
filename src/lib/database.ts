@@ -154,13 +154,84 @@ export interface ProductIngredient {
   quantityUsed: number; // الكمية المستخدمة من المادة الخام لكل وحدة من المنتج
 }
 
+// أنواع الأدوار المتاحة
+export type UserRole = 'admin' | 'cashier' | 'kitchen' | 'waiter' | 'delivery';
+
+// الصفحات المتاحة في النظام
+export type PagePermission = 
+  | 'dashboard' 
+  | 'pos' 
+  | 'products' 
+  | 'inventory' 
+  | 'materials' 
+  | 'materials-report'
+  | 'tables' 
+  | 'tables-view' 
+  | 'kitchen' 
+  | 'delivery' 
+  | 'customers' 
+  | 'sales' 
+  | 'reports' 
+  | 'settings'
+  | 'users';
+
 // جدول المستخدمين المحليين
 export interface SystemUser {
   id?: number;
   name: string;
   password: string;
+  role: UserRole;
+  permissions: PagePermission[];
+  isActive: boolean;
   createdAt: Date;
+  updatedAt: Date;
 }
+
+// الصلاحيات الافتراضية لكل دور
+export const defaultPermissionsByRole: Record<UserRole, PagePermission[]> = {
+  admin: ['dashboard', 'pos', 'products', 'inventory', 'materials', 'materials-report', 'tables', 'tables-view', 'kitchen', 'delivery', 'customers', 'sales', 'reports', 'settings', 'users'],
+  cashier: ['pos', 'customers'],
+  kitchen: ['kitchen'],
+  waiter: ['pos', 'tables', 'tables-view'],
+  delivery: ['delivery', 'customers'],
+};
+
+// أسماء الأدوار بالعربي
+export const roleNames: Record<UserRole, string> = {
+  admin: 'مدير',
+  cashier: 'كاشير',
+  kitchen: 'مطبخ',
+  waiter: 'نادل',
+  delivery: 'توصيل',
+};
+
+// أسماء الصفحات بالعربي
+export const pageNames: Record<PagePermission, string> = {
+  dashboard: 'لوحة التحكم',
+  pos: 'نقطة البيع',
+  products: 'المنتجات',
+  inventory: 'المخزون',
+  materials: 'المواد الخام',
+  'materials-report': 'تقرير المواد',
+  tables: 'إدارة الطاولات',
+  'tables-view': 'عرض الطاولات',
+  kitchen: 'شاشة المطبخ',
+  delivery: 'التوصيل',
+  customers: 'العملاء',
+  sales: 'المبيعات',
+  reports: 'التقارير',
+  settings: 'الإعدادات',
+  users: 'المستخدمين',
+};
+
+// الصفحة الافتراضية لكل دور
+export const defaultPageByRole: Record<UserRole, string> = {
+  admin: '/',
+  cashier: '/pos',
+  kitchen: '/kitchen',
+  waiter: '/tables-view',
+  delivery: '/delivery',
+};
 
 // Database Class
 class RestaurantDatabase extends Dexie {
@@ -179,7 +250,7 @@ class RestaurantDatabase extends Dexie {
   constructor() {
     super('RestaurantPOS');
     
-    this.version(4).stores({
+    this.version(5).stores({
       products: '++id, name, category, subcategory, type, sku, barcode, isActive',
       categories: '++id, name, type, order, isActive',
       restaurantTables: '++id, number, status, isActive',
@@ -190,7 +261,7 @@ class RestaurantDatabase extends Dexie {
       customers: '++id, name, phone',
       rawMaterials: '++id, name, isActive',
       productIngredients: '++id, productId, rawMaterialId',
-      systemUsers: '++id, name'
+      systemUsers: '++id, name, role, isActive'
     });
   }
 }

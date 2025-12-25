@@ -17,33 +17,49 @@ import {
   Truck,
   ChefHat,
   Boxes,
+  UserCog,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PagePermission } from '@/lib/database';
 
-const menuItems = [
-  { path: '/', icon: LayoutDashboard, label: 'لوحة التحكم' },
-  { path: '/pos', icon: ShoppingCart, label: 'نقطة البيع' },
-  { path: '/products', icon: Package, label: 'المنتجات' },
-  { path: '/inventory', icon: Warehouse, label: 'المخزون' },
-  { path: '/materials', icon: Boxes, label: 'المواد الخام' },
-  { path: '/materials-report', icon: BarChart3, label: 'تقرير المواد' },
-  { path: '/tables', icon: UtensilsCrossed, label: 'إدارة الطاولات' },
-  { path: '/tables-view', icon: Eye, label: 'عرض الطاولات' },
-  { path: '/kitchen', icon: ChefHat, label: 'شاشة المطبخ' },
-  { path: '/delivery', icon: Truck, label: 'التوصيل' },
-  { path: '/customers', icon: Users, label: 'العملاء' },
-  { path: '/sales', icon: FileText, label: 'المبيعات' },
-  { path: '/reports', icon: BarChart3, label: 'التقارير' },
-  { path: '/settings', icon: Settings, label: 'الإعدادات' },
+interface MenuItem {
+  path: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  permission: PagePermission;
+}
+
+const allMenuItems: MenuItem[] = [
+  { path: '/', icon: LayoutDashboard, label: 'لوحة التحكم', permission: 'dashboard' },
+  { path: '/pos', icon: ShoppingCart, label: 'نقطة البيع', permission: 'pos' },
+  { path: '/products', icon: Package, label: 'المنتجات', permission: 'products' },
+  { path: '/inventory', icon: Warehouse, label: 'المخزون', permission: 'inventory' },
+  { path: '/materials', icon: Boxes, label: 'المواد الخام', permission: 'materials' },
+  { path: '/materials-report', icon: BarChart3, label: 'تقرير المواد', permission: 'materials-report' },
+  { path: '/tables', icon: UtensilsCrossed, label: 'إدارة الطاولات', permission: 'tables' },
+  { path: '/tables-view', icon: Eye, label: 'عرض الطاولات', permission: 'tables-view' },
+  { path: '/kitchen', icon: ChefHat, label: 'شاشة المطبخ', permission: 'kitchen' },
+  { path: '/delivery', icon: Truck, label: 'التوصيل', permission: 'delivery' },
+  { path: '/customers', icon: Users, label: 'العملاء', permission: 'customers' },
+  { path: '/sales', icon: FileText, label: 'المبيعات', permission: 'sales' },
+  { path: '/reports', icon: BarChart3, label: 'التقارير', permission: 'reports' },
+  { path: '/users', icon: UserCog, label: 'المستخدمين', permission: 'users' },
+  { path: '/settings', icon: Settings, label: 'الإعدادات', permission: 'settings' },
 ];
 
 interface SidebarProps {
   onWidthChange?: (width: number) => void;
+  userPermissions?: PagePermission[];
 }
 
-export function Sidebar({ onWidthChange }: SidebarProps) {
+export function Sidebar({ onWidthChange, userPermissions = [] }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+
+  // Filter menu items based on user permissions
+  const menuItems = allMenuItems.filter(item => 
+    userPermissions.includes(item.permission)
+  );
 
   useEffect(() => {
     onWidthChange?.(collapsed ? 80 : 260);

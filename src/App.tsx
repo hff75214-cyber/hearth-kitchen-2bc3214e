@@ -3,8 +3,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { SystemUser, defaultPageByRole, PagePermission } from "@/lib/database";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import POS from "./pages/POS";
@@ -20,6 +21,7 @@ import Kitchen from "./pages/Kitchen";
 import Customers from "./pages/Customers";
 import Delivery from "./pages/Delivery";
 import Login from "./pages/Login";
+import Users from "./pages/Users";
 
 const queryClient = new QueryClient();
 
@@ -34,32 +36,84 @@ const initTheme = () => {
 };
 initTheme();
 
+// Route permission mapping
+const routePermissions: Record<string, PagePermission> = {
+  '/': 'dashboard',
+  '/pos': 'pos',
+  '/products': 'products',
+  '/inventory': 'inventory',
+  '/materials': 'materials',
+  '/materials-report': 'materials-report',
+  '/tables': 'tables',
+  '/tables-view': 'tables-view',
+  '/kitchen': 'kitchen',
+  '/delivery': 'delivery',
+  '/customers': 'customers',
+  '/sales': 'sales',
+  '/reports': 'reports',
+  '/settings': 'settings',
+  '/users': 'users',
+};
+
+// Protected Route Component
+function ProtectedRoute({ 
+  element, 
+  requiredPermission, 
+  userPermissions,
+  defaultPath 
+}: { 
+  element: React.ReactElement;
+  requiredPermission: PagePermission;
+  userPermissions: PagePermission[];
+  defaultPath: string;
+}) {
+  if (userPermissions.includes(requiredPermission)) {
+    return element;
+  }
+  return <Navigate to={defaultPath} replace />;
+}
+
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState('');
+  const [currentUser, setCurrentUser] = useState<SystemUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check if user is already logged in
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      setUserName(savedUser);
-      setIsLoggedIn(true);
+    const savedUserData = localStorage.getItem('currentUserData');
+    if (savedUserData) {
+      try {
+        const user = JSON.parse(savedUserData) as SystemUser;
+        setCurrentUser(user);
+        setIsLoggedIn(true);
+      } catch {
+        localStorage.removeItem('currentUserData');
+      }
     }
+    setIsLoading(false);
   }, []);
 
-  const handleLogin = (name: string) => {
-    localStorage.setItem('currentUser', name);
-    setUserName(name);
+  const handleLogin = (user: SystemUser) => {
+    localStorage.setItem('currentUserData', JSON.stringify(user));
+    setCurrentUser(user);
     setIsLoggedIn(true);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('currentUser');
-    setUserName('');
+    localStorage.removeItem('currentUserData');
+    setCurrentUser(null);
     setIsLoggedIn(false);
   };
 
-  if (!isLoggedIn) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!isLoggedIn || !currentUser) {
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
@@ -71,28 +125,157 @@ const App = () => {
     );
   }
 
+  const userPermissions = currentUser.permissions || [];
+  const defaultPath = defaultPageByRole[currentUser.role] || '/';
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <MainLayout userName={userName} onLogout={handleLogout}>
+          <MainLayout 
+            userName={currentUser.name} 
+            userRole={currentUser.role}
+            userPermissions={userPermissions}
+            onLogout={handleLogout}
+          >
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/pos" element={<POS />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/materials" element={<Materials />} />
-              <Route path="/materials-report" element={<MaterialsReport />} />
-              <Route path="/tables" element={<Tables />} />
-              <Route path="/tables-view" element={<TablesView />} />
-              <Route path="/sales" element={<Sales />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/kitchen" element={<Kitchen />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/delivery" element={<Delivery />} />
+              {/* Default redirect based on role */}
+              <Route path="/" element={
+                userPermissions.includes('dashboard') 
+                  ? <Dashboard /> 
+                  : <Navigate to={defaultPath} replace />
+              } />
+              
+              <Route path="/pos" element={
+                <ProtectedRoute 
+                  element={<POS />} 
+                  requiredPermission="pos" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/products" element={
+                <ProtectedRoute 
+                  element={<Products />} 
+                  requiredPermission="products" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/inventory" element={
+                <ProtectedRoute 
+                  element={<Inventory />} 
+                  requiredPermission="inventory" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/materials" element={
+                <ProtectedRoute 
+                  element={<Materials />} 
+                  requiredPermission="materials" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/materials-report" element={
+                <ProtectedRoute 
+                  element={<MaterialsReport />} 
+                  requiredPermission="materials-report" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/tables" element={
+                <ProtectedRoute 
+                  element={<Tables />} 
+                  requiredPermission="tables" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/tables-view" element={
+                <ProtectedRoute 
+                  element={<TablesView />} 
+                  requiredPermission="tables-view" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/sales" element={
+                <ProtectedRoute 
+                  element={<Sales />} 
+                  requiredPermission="sales" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/reports" element={
+                <ProtectedRoute 
+                  element={<Reports />} 
+                  requiredPermission="reports" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/settings" element={
+                <ProtectedRoute 
+                  element={<Settings />} 
+                  requiredPermission="settings" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/kitchen" element={
+                <ProtectedRoute 
+                  element={<Kitchen />} 
+                  requiredPermission="kitchen" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/customers" element={
+                <ProtectedRoute 
+                  element={<Customers />} 
+                  requiredPermission="customers" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/delivery" element={
+                <ProtectedRoute 
+                  element={<Delivery />} 
+                  requiredPermission="delivery" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/users" element={
+                <ProtectedRoute 
+                  element={<Users />} 
+                  requiredPermission="users" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+
+              {/* Catch all - redirect to default path */}
+              <Route path="*" element={<Navigate to={defaultPath} replace />} />
             </Routes>
           </MainLayout>
         </BrowserRouter>
