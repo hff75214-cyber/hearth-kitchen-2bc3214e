@@ -11,8 +11,11 @@ import {
   DollarSign,
   ShoppingCart,
   X,
+  XCircle,
+  RotateCcw,
 } from 'lucide-react';
-import { db, Order } from '@/lib/database';
+import { db, Order, logActivity, UserRole } from '@/lib/database';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +48,7 @@ export default function Sales() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'all'>('today');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadData();
@@ -477,6 +481,7 @@ export default function Sales() {
                 </div>
               </div>
 
+              {/* Action Buttons */}
               <div className="flex gap-3">
                 <Button
                   variant="outline"
@@ -493,6 +498,76 @@ export default function Sales() {
                   طباعة
                 </Button>
               </div>
+
+              {/* Cancel/Refund Buttons - Only show for non-cancelled orders */}
+              {selectedOrder.status !== 'cancelled' && (
+                <div className="flex gap-3 pt-2 border-t border-border">
+                  {selectedOrder.status !== 'completed' && (
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        if (!selectedOrder.id) return;
+                        try {
+                          await db.orders.update(selectedOrder.id, { status: 'cancelled' });
+                          const currentUserData = localStorage.getItem('currentUserData');
+                          if (currentUserData) {
+                            const user = JSON.parse(currentUserData);
+                            await logActivity(
+                              { id: user.id, name: user.name, role: user.role as UserRole },
+                              'order_cancel',
+                              `إلغاء طلب #${selectedOrder.orderNumber}`,
+                              { orderId: selectedOrder.id, orderNumber: selectedOrder.orderNumber, total: selectedOrder.total },
+                              selectedOrder.total,
+                              selectedOrder.id
+                            );
+                          }
+                          toast({ title: 'تم إلغاء الطلب', description: `تم إلغاء الطلب #${selectedOrder.orderNumber}` });
+                          loadData();
+                          setSelectedOrder(null);
+                        } catch (error) {
+                          toast({ title: 'خطأ', description: 'حدث خطأ أثناء إلغاء الطلب', variant: 'destructive' });
+                        }
+                      }}
+                      className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <XCircle className="w-4 h-4 ml-2" />
+                      إلغاء الطلب
+                    </Button>
+                  )}
+                  {selectedOrder.status === 'completed' && (
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        if (!selectedOrder.id) return;
+                        try {
+                          await db.orders.update(selectedOrder.id, { status: 'cancelled' });
+                          const currentUserData = localStorage.getItem('currentUserData');
+                          if (currentUserData) {
+                            const user = JSON.parse(currentUserData);
+                            await logActivity(
+                              { id: user.id, name: user.name, role: user.role as UserRole },
+                              'refund',
+                              `استرجاع طلب #${selectedOrder.orderNumber}`,
+                              { orderId: selectedOrder.id, orderNumber: selectedOrder.orderNumber, total: selectedOrder.total },
+                              selectedOrder.total,
+                              selectedOrder.id
+                            );
+                          }
+                          toast({ title: 'تم الاسترجاع', description: `تم استرجاع الطلب #${selectedOrder.orderNumber} بقيمة ${selectedOrder.total.toFixed(2)} ج.م` });
+                          loadData();
+                          setSelectedOrder(null);
+                        } catch (error) {
+                          toast({ title: 'خطأ', description: 'حدث خطأ أثناء الاسترجاع', variant: 'destructive' });
+                        }
+                      }}
+                      className="flex-1 border-warning text-warning hover:bg-warning hover:text-warning-foreground"
+                    >
+                      <RotateCcw className="w-4 h-4 ml-2" />
+                      استرجاع
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

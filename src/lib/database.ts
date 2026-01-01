@@ -92,6 +92,9 @@ export interface Order {
   notes?: string;
   createdAt: Date;
   completedAt?: Date;
+  // بيانات الموظف الذي أجرى البيع
+  userId?: number;
+  userName?: string;
 }
 
 export interface Settings {

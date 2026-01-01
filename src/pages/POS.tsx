@@ -213,6 +213,10 @@ export default function POS() {
         orderStatus = 'completed';
       }
 
+      // Get current user data
+      const currentUserData = localStorage.getItem('currentUserData');
+      const currentUser = currentUserData ? JSON.parse(currentUserData) : null;
+
       const order: Omit<Order, 'id'> = {
         orderNumber,
         type: orderType,
@@ -233,6 +237,8 @@ export default function POS() {
         notes: orderNotes || undefined,
         createdAt: new Date(),
         completedAt: orderStatus === 'completed' ? new Date() : undefined,
+        userId: currentUser?.id,
+        userName: currentUser?.name,
       };
 
       const orderId = await db.orders.add(order);
@@ -313,11 +319,9 @@ export default function POS() {
       await updateDailySummary(new Date());
 
       // Log sale activity
-      const currentUserData = localStorage.getItem('currentUserData');
-      if (currentUserData) {
-        const user = JSON.parse(currentUserData);
+      if (currentUser) {
         await logActivity(
-          { id: user.id, name: user.name, role: user.role },
+          { id: currentUser.id, name: currentUser.name, role: currentUser.role },
           'sale',
           `عملية بيع - طلب #${orderNumber}`,
           { orderType, itemsCount: cart.length, paymentMethod },
