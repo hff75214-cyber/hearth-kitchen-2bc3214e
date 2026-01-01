@@ -14,7 +14,8 @@ import {
   XCircle,
   RotateCcw,
 } from 'lucide-react';
-import { db, Order, logActivity, UserRole } from '@/lib/database';
+import { db, Order, logActivity, UserRole, Settings } from '@/lib/database';
+import { printThermalReceipt } from '@/lib/thermalPrint';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ import {
 
 export default function Sales() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -52,7 +54,15 @@ export default function Sales() {
 
   useEffect(() => {
     loadData();
+    loadSettings();
   }, [dateFilter]);
+
+  const loadSettings = async () => {
+    const settingsData = await db.settings.toArray();
+    if (settingsData.length > 0) {
+      setSettings(settingsData[0]);
+    }
+  };
 
   const loadData = async () => {
     let query = db.orders.orderBy('createdAt').reverse();
@@ -130,66 +140,7 @@ export default function Sales() {
   };
 
   const printReceipt = (order: Order) => {
-    const lines: string[] = [
-      '═══════════════════════════════',
-      '           مطعمي',
-      '═══════════════════════════════',
-      `رقم الطلب: ${order.orderNumber}`,
-      `التاريخ: ${new Date(order.createdAt).toLocaleDateString('ar-EG')}`,
-      `الوقت: ${new Date(order.createdAt).toLocaleTimeString('ar-EG')}`,
-      '───────────────────────────────',
-      `النوع: ${getTypeLabel(order.type)}${order.tableName ? ' - ' + order.tableName : ''}`,
-    ];
-
-    if (order.customerName) {
-      lines.push(`العميل: ${order.customerName}`);
-    }
-    if (order.customerPhone) {
-      lines.push(`الهاتف: ${order.customerPhone}`);
-    }
-    if (order.customerAddress) {
-      lines.push(`العنوان: ${order.customerAddress}`);
-    }
-
-    lines.push('───────────────────────────────');
-    lines.push('');
-
-    order.items.forEach(item => {
-      lines.push(`${item.productName}`);
-      lines.push(`  ${item.quantity} × ${item.unitPrice.toFixed(2)} = ${item.total.toFixed(2)} ج.م`);
-    });
-
-    lines.push('');
-    lines.push('───────────────────────────────');
-    lines.push(`المجموع: ${order.subtotal.toFixed(2)} ج.م`);
-    
-    if (order.discount > 0) {
-      lines.push(`الخصم: -${order.discount.toFixed(2)} ج.م`);
-    }
-    
-    lines.push(`الإجمالي: ${order.total.toFixed(2)} ج.م`);
-    lines.push('───────────────────────────────');
-    lines.push(`طريقة الدفع: ${order.paymentMethod === 'cash' ? 'نقدي' : order.paymentMethod === 'card' ? 'بطاقة' : 'محفظة'}`);
-    lines.push('');
-    lines.push('       شكراً لزيارتكم!');
-    lines.push('═══════════════════════════════');
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html dir="rtl">
-          <head>
-            <title>فاتورة ${order.orderNumber}</title>
-            <style>
-              body { font-family: monospace; white-space: pre; font-size: 14px; padding: 20px; }
-            </style>
-          </head>
-          <body>${lines.join('\n')}</body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
+    printThermalReceipt(order, settings || undefined);
   };
 
   return (
