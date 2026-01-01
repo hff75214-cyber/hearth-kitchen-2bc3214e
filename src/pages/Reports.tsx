@@ -7,6 +7,7 @@ import {
   ShoppingCart,
   Package,
   Users,
+  User,
   Calendar,
   Download,
   BarChart3,
@@ -37,6 +38,14 @@ import {
   Legend,
 } from 'recharts';
 
+interface UserSalesData {
+  userId: number;
+  userName: string;
+  totalSales: number;
+  totalProfit: number;
+  ordersCount: number;
+}
+
 interface ReportData {
   totalSales: number;
   totalProfit: number;
@@ -46,6 +55,7 @@ interface ReportData {
   salesByType: { name: string; value: number }[];
   salesByPayment: { name: string; value: number }[];
   dailySales: { date: string; sales: number; profit: number }[];
+  salesByUser: UserSalesData[];
 }
 
 const COLORS = ['hsl(35, 95%, 55%)', 'hsl(142, 76%, 36%)', 'hsl(199, 89%, 48%)', 'hsl(0, 72%, 51%)'];
@@ -145,6 +155,29 @@ export default function Reports() {
       });
     }
 
+    // Sales by user
+    const userSalesMap = new Map<number, UserSalesData>();
+    orders.forEach(order => {
+      if (order.userId) {
+        const existing = userSalesMap.get(order.userId);
+        if (existing) {
+          existing.totalSales += order.total;
+          existing.totalProfit += order.profit;
+          existing.ordersCount += 1;
+        } else {
+          userSalesMap.set(order.userId, {
+            userId: order.userId,
+            userName: order.userName || 'غير معروف',
+            totalSales: order.total,
+            totalProfit: order.profit,
+            ordersCount: 1,
+          });
+        }
+      }
+    });
+    const salesByUser = Array.from(userSalesMap.values())
+      .sort((a, b) => b.totalSales - a.totalSales);
+
     setReportData({
       totalSales,
       totalProfit,
@@ -156,6 +189,7 @@ export default function Reports() {
       dailySales: dateRange === 'year' 
         ? dailySales.filter((_, i) => i % 7 === 0) // Weekly for year view
         : dailySales,
+      salesByUser,
     });
 
     setLoading(false);
@@ -686,6 +720,57 @@ export default function Reports() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Sales by User */}
+      {reportData.salesByUser.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+        >
+          <Card className="glass shadow-card">
+            <CardHeader>
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <User className="w-5 h-5 text-primary" />
+                المبيعات حسب الموظف
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {reportData.salesByUser.map((user, index) => {
+                  const maxSales = Math.max(...reportData.salesByUser.map(u => u.totalSales));
+                  const percentage = (user.totalSales / maxSales) * 100;
+                  return (
+                    <div key={user.userId} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                            <span className="text-sm font-bold text-primary">{index + 1}</span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{user.userName}</p>
+                            <p className="text-xs text-muted-foreground">{user.ordersCount} طلب</p>
+                          </div>
+                        </div>
+                        <div className="text-left">
+                          <p className="font-bold text-foreground">{user.totalSales.toFixed(0)} ج.م</p>
+                          <p className="text-xs text-success">ربح: {user.totalProfit.toFixed(0)} ج.م</p>
+                        </div>
+                      </div>
+                      <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                        <div 
+                          className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-all duration-500"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
     </div>
   );
 }
