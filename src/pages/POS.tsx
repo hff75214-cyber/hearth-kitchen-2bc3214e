@@ -19,7 +19,7 @@ import {
   Users,
   UserPlus,
 } from 'lucide-react';
-import { db, Product, Category, Order, OrderItem, Customer, generateOrderNumber, updateDailySummary, addNotification, deductRawMaterials } from '@/lib/database';
+import { db, Product, Category, Order, OrderItem, Customer, generateOrderNumber, updateDailySummary, addNotification, deductRawMaterials, logActivity } from '@/lib/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -311,6 +311,20 @@ export default function POS() {
 
       // Update daily summary
       await updateDailySummary(new Date());
+
+      // Log sale activity
+      const currentUserData = localStorage.getItem('currentUserData');
+      if (currentUserData) {
+        const user = JSON.parse(currentUserData);
+        await logActivity(
+          { id: user.id, name: user.name, role: user.role },
+          'sale',
+          `عملية بيع - طلب #${orderNumber}`,
+          { orderType, itemsCount: cart.length, paymentMethod },
+          total,
+          orderId as number
+        );
+      }
 
       // Generate receipt
       const receipt = generateReceipt(order as Order, orderNumber);
