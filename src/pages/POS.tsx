@@ -19,7 +19,8 @@ import {
   Users,
   UserPlus,
 } from 'lucide-react';
-import { db, Product, Category, Order, OrderItem, Customer, generateOrderNumber, updateDailySummary, addNotification, deductRawMaterials, logActivity } from '@/lib/database';
+import { db, Product, Category, Order, OrderItem, Customer, Settings, generateOrderNumber, updateDailySummary, addNotification, deductRawMaterials, logActivity } from '@/lib/database';
+import { printThermalReceipt } from '@/lib/thermalPrint';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,22 +84,27 @@ export default function POS() {
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [isNewCustomer, setIsNewCustomer] = useState(true);
+  const [settings, setSettings] = useState<Settings | null>(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    const [productsData, categoriesData, tablesData, customersData] = await Promise.all([
+    const [productsData, categoriesData, tablesData, customersData, settingsData] = await Promise.all([
       db.products.toArray(),
       db.categories.toArray(),
       db.restaurantTables.toArray(),
       db.customers.toArray(),
+      db.settings.toArray(),
     ]);
     setProducts(productsData.filter(p => p.isActive));
     setCategories(categoriesData.filter(c => c.isActive));
     setTables(tablesData.filter(t => t.isActive).map(t => ({ id: t.id!, name: t.name, number: t.number })));
     setCustomers(customersData);
+    if (settingsData.length > 0) {
+      setSettings(settingsData[0]);
+    }
   };
 
   const filteredProducts = products.filter((product) => {
@@ -330,9 +336,8 @@ export default function POS() {
         );
       }
 
-      // Generate receipt
-      const receipt = generateReceipt(order as Order, orderNumber);
-      setReceiptContent(receipt);
+      // Store order for receipt printing
+      setReceiptContent(JSON.stringify({ ...order, orderNumber }));
 
       // Reset
       setCart([]);
@@ -351,140 +356,17 @@ export default function POS() {
     }
   };
 
-  const generateReceipt = (order: Order, orderNumber: string): string => {
-    const orderTypeLabel = order.type === 'dine-in' ? `طاولة ${order.tableName || ''}` : order.type === 'delivery' ? 'توصيل' : 'استلام';
-    const paymentLabel = order.paymentMethod === 'cash' ? 'نقدي' : order.paymentMethod === 'card' ? 'بطاقة' : 'محفظة إلكترونية';
-    
-    const itemsHtml = order.items.map(item => `
-      <tr>
-        <td style="padding: 8px 4px; border-bottom: 1px solid #e5e7eb;">${item.productName}</td>
-        <td style="padding: 8px 4px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-        <td style="padding: 8px 4px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.unitPrice.toFixed(2)}</td>
-        <td style="padding: 8px 4px; border-bottom: 1px solid #e5e7eb; text-align: left; font-weight: 600;">${item.total.toFixed(2)}</td>
-      </tr>
-    `).join('');
-
-    return `
-      <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 350px; margin: 0 auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 3px; border-radius: 16px;">
-        <div style="background: white; border-radius: 14px; overflow: hidden;">
-          <!-- Header -->
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; text-align: center;">
-            <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center;">
-              <span style="font-size: 28px;">🍽️</span>
-            </div>
-            <h1 style="margin: 0; font-size: 24px; font-weight: 700;">مطعمي</h1>
-            <p style="margin: 8px 0 0; opacity: 0.9; font-size: 14px;">فاتورة ضريبية</p>
-          </div>
-
-          <!-- Order Info -->
-          <div style="padding: 20px; background: #f8f9fa;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-              <span style="color: #6b7280; font-size: 13px;">رقم الطلب</span>
-              <span style="font-weight: 700; color: #667eea;">#${orderNumber}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-              <span style="color: #6b7280; font-size: 13px;">التاريخ</span>
-              <span style="font-weight: 500;">${new Date().toLocaleDateString('ar-EG')}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-              <span style="color: #6b7280; font-size: 13px;">الوقت</span>
-              <span style="font-weight: 500;">${new Date().toLocaleTimeString('ar-EG')}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span style="color: #6b7280; font-size: 13px;">نوع الطلب</span>
-              <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">${orderTypeLabel}</span>
-            </div>
-          </div>
-
-          <!-- Items Table -->
-          <div style="padding: 20px;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;" dir="rtl">
-              <thead>
-                <tr style="background: #f3f4f6;">
-                  <th style="padding: 12px 4px; text-align: right; font-weight: 600; color: #374151; border-radius: 8px 0 0 0;">الصنف</th>
-                  <th style="padding: 12px 4px; text-align: center; font-weight: 600; color: #374151;">الكمية</th>
-                  <th style="padding: 12px 4px; text-align: center; font-weight: 600; color: #374151;">السعر</th>
-                  <th style="padding: 12px 4px; text-align: left; font-weight: 600; color: #374151; border-radius: 0 8px 0 0;">المجموع</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${itemsHtml}
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Totals -->
-          <div style="padding: 0 20px 20px;">
-            <div style="background: #f8f9fa; border-radius: 12px; padding: 16px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span style="color: #6b7280;">المجموع الفرعي</span>
-                <span style="font-weight: 500;">${order.subtotal.toFixed(2)} ج.م</span>
-              </div>
-              ${order.discount > 0 ? `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #10b981;">
-                  <span>الخصم</span>
-                  <span style="font-weight: 500;">- ${order.discount.toFixed(2)} ج.م</span>
-                </div>
-              ` : ''}
-              <div style="border-top: 2px dashed #e5e7eb; margin: 12px 0; padding-top: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-size: 18px; font-weight: 700; color: #374151;">الإجمالي</span>
-                  <span style="font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">${order.total.toFixed(2)} ج.م</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Payment Method -->
-          <div style="padding: 0 20px 20px;">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; background: #ecfdf5; border-radius: 8px; color: #059669;">
-              <span style="font-size: 18px;">✓</span>
-              <span style="font-weight: 600;">تم الدفع - ${paymentLabel}</span>
-            </div>
-          </div>
-
-          <!-- Footer -->
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center;">
-            <p style="margin: 0 0 8px; font-size: 16px; font-weight: 600;">شكراً لزيارتكم! 🙏</p>
-            <p style="margin: 0; font-size: 12px; opacity: 0.9;">نتمنى لكم وجبة شهية</p>
-            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.2);">
-              <p style="margin: 0; font-size: 11px; opacity: 0.8;">هذه الفاتورة صادرة إلكترونياً</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  };
-
   const printReceipt = () => {
     if (receiptContent) {
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html dir="rtl" lang="ar">
-            <head>
-              <meta charset="UTF-8">
-              <title>فاتورة</title>
-              <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { 
-                  font-family: 'Segoe UI', Tahoma, sans-serif;
-                  padding: 20px;
-                  background: #f5f5f5;
-                  display: flex;
-                  justify-content: center;
-                }
-                @media print {
-                  body { background: white; padding: 0; }
-                }
-              </style>
-            </head>
-            <body>${receiptContent}</body>
-          </html>
-        `);
-        printWindow.document.close();
-        printWindow.print();
+      try {
+        const orderData = JSON.parse(receiptContent);
+        const order: Order = {
+          ...orderData,
+          createdAt: new Date(orderData.createdAt),
+        };
+        printThermalReceipt(order, settings || undefined);
+      } catch (error) {
+        console.error('Error printing receipt:', error);
       }
     }
   };
