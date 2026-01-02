@@ -10,9 +10,13 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Clock,
+  Calendar,
+  BarChart3,
 } from 'lucide-react';
 import { db, Order, Product } from '@/lib/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   AreaChart,
   Area,
@@ -24,7 +28,14 @@ import {
   PieChart,
   Pie,
   Cell,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  Legend,
 } from 'recharts';
+import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, subMonths } from 'date-fns';
+import { ar } from 'date-fns/locale';
 
 interface DashboardStats {
   todaySales: number;
@@ -33,9 +44,24 @@ interface DashboardStats {
   pendingOrders: number;
   lowStockItems: number;
   occupiedTables: number;
+  yesterdaySales: number;
+  yesterdayOrders: number;
 }
 
-const COLORS = ['hsl(35, 95%, 55%)', 'hsl(142, 76%, 36%)', 'hsl(199, 89%, 48%)'];
+interface MonthlyData {
+  name: string;
+  sales: number;
+  orders: number;
+  profit: number;
+}
+
+interface HourlyData {
+  hour: string;
+  sales: number;
+  orders: number;
+}
+
+const COLORS = ['hsl(35, 95%, 55%)', 'hsl(142, 76%, 36%)', 'hsl(199, 89%, 48%)', 'hsl(280, 65%, 60%)'];
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>({
@@ -45,10 +71,16 @@ export default function Dashboard() {
     pendingOrders: 0,
     lowStockItems: 0,
     occupiedTables: 0,
+    yesterdaySales: 0,
+    yesterdayOrders: 0,
   });
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
-  const [salesData, setSalesData] = useState<{ name: string; value: number }[]>([]);
+  const [salesData, setSalesData] = useState<{ name: string; value: number; profit: number }[]>([]);
   const [orderTypesData, setOrderTypesData] = useState<{ name: string; value: number }[]>([]);
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
+  const [hourlyData, setHourlyData] = useState<HourlyData[]>([]);
+  const [topProducts, setTopProducts] = useState<{ name: string; count: number; revenue: number }[]>([]);
+  const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily');
 
   useEffect(() => {
     loadDashboardData();
@@ -56,8 +88,17 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     const today = new Date();
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+    const startOfDay = new Date(today);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(today);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Yesterday's data for comparison
+    const yesterday = subDays(today, 1);
+    const yesterdayStart = new Date(yesterday);
+    yesterdayStart.setHours(0, 0, 0, 0);
+    const yesterdayEnd = new Date(yesterday);
+    yesterdayEnd.setHours(23, 59, 59, 999);
 
     // Today's orders
     const todayOrders = await db.orders
@@ -65,7 +106,14 @@ export default function Dashboard() {
       .between(startOfDay, endOfDay)
       .toArray();
 
+    // Yesterday's orders
+    const yesterdayOrders = await db.orders
+      .where('createdAt')
+      .between(yesterdayStart, yesterdayEnd)
+      .toArray();
+
     const completedOrders = todayOrders.filter(o => o.status === 'completed');
+    const yesterdayCompleted = yesterdayOrders.filter(o => o.status === 'completed');
 
     // Low stock items
     const products = await db.products.toArray();
@@ -84,6 +132,8 @@ export default function Dashboard() {
       pendingOrders: pending.length,
       lowStockItems: lowStock.length,
       occupiedTables: tables,
+      yesterdaySales: yesterdayCompleted.reduce((sum, o) => sum + o.total, 0),
+      yesterdayOrders: yesterdayCompleted.length,
     });
 
     // Recent orders
@@ -91,12 +141,13 @@ export default function Dashboard() {
     setRecentOrders(recent);
 
     // Sales data for last 7 days
-    const last7Days: { name: string; value: number }[] = [];
+    const last7Days: { name: string; value: number; profit: number }[] = [];
     for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dayStart = new Date(date.setHours(0, 0, 0, 0));
-      const dayEnd = new Date(date.setHours(23, 59, 59, 999));
+      const date = subDays(new Date(), i);
+      const dayStart = new Date(date);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(date);
+      dayEnd.setHours(23, 59, 59, 999);
       
       const dayOrders = await db.orders
         .where('createdAt')
@@ -105,8 +156,9 @@ export default function Dashboard() {
         .toArray();
       
       last7Days.push({
-        name: new Date(dayStart).toLocaleDateString('ar-EG', { weekday: 'short' }),
+        name: format(dayStart, 'EEE', { locale: ar }),
         value: dayOrders.reduce((sum, o) => sum + o.total, 0),
+        profit: dayOrders.reduce((sum, o) => sum + o.profit, 0),
       });
     }
     setSalesData(last7Days);
@@ -120,33 +172,106 @@ export default function Dashboard() {
       { name: 'توصيل', value: delivery },
       { name: 'استلام', value: takeaway },
     ]);
+
+    // Monthly data for last 6 months
+    const monthlyStats: MonthlyData[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthDate = subMonths(new Date(), i);
+      const monthStart = startOfMonth(monthDate);
+      const monthEnd = endOfMonth(monthDate);
+      
+      const monthOrders = await db.orders
+        .where('createdAt')
+        .between(monthStart, monthEnd)
+        .and(o => o.status === 'completed')
+        .toArray();
+      
+      monthlyStats.push({
+        name: format(monthDate, 'MMM', { locale: ar }),
+        sales: monthOrders.reduce((sum, o) => sum + o.total, 0),
+        orders: monthOrders.length,
+        profit: monthOrders.reduce((sum, o) => sum + o.profit, 0),
+      });
+    }
+    setMonthlyData(monthlyStats);
+
+    // Hourly sales distribution (today)
+    const hourlyStats: HourlyData[] = [];
+    for (let hour = 8; hour <= 23; hour++) {
+      const hourStart = new Date(startOfDay);
+      hourStart.setHours(hour, 0, 0, 0);
+      const hourEnd = new Date(startOfDay);
+      hourEnd.setHours(hour, 59, 59, 999);
+      
+      const hourOrders = todayOrders.filter(o => {
+        const orderTime = new Date(o.createdAt);
+        return orderTime >= hourStart && orderTime <= hourEnd && o.status === 'completed';
+      });
+      
+      hourlyStats.push({
+        hour: `${hour}:00`,
+        sales: hourOrders.reduce((sum, o) => sum + o.total, 0),
+        orders: hourOrders.length,
+      });
+    }
+    setHourlyData(hourlyStats);
+
+    // Top selling products
+    const productSales = new Map<string, { count: number; revenue: number }>();
+    const allOrders = await db.orders.toArray();
+    allOrders.forEach(order => {
+      if (order.status === 'completed') {
+        order.items.forEach(item => {
+          const existing = productSales.get(item.productName) || { count: 0, revenue: 0 };
+          productSales.set(item.productName, {
+            count: existing.count + item.quantity,
+            revenue: existing.revenue + item.total,
+          });
+        });
+      }
+    });
+    
+    const topSelling = Array.from(productSales.entries())
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+    setTopProducts(topSelling);
   };
 
   const formatCurrency = (value: number) => `${value.toFixed(2)} ج.م`;
+
+  const calculateTrend = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? '+100%' : '0%';
+    const change = ((current - previous) / previous) * 100;
+    return `${change >= 0 ? '+' : ''}${change.toFixed(0)}%`;
+  };
+
+  const salesTrend = calculateTrend(stats.todaySales, stats.yesterdaySales);
+  const ordersTrend = calculateTrend(stats.todayOrders, stats.yesterdayOrders);
+  const isSalesTrendUp = stats.todaySales >= stats.yesterdaySales;
+  const isOrdersTrendUp = stats.todayOrders >= stats.yesterdayOrders;
 
   const statCards = [
     {
       title: 'مبيعات اليوم',
       value: formatCurrency(stats.todaySales),
       icon: DollarSign,
-      trend: '+12%',
-      trendUp: true,
+      trend: salesTrend,
+      trendUp: isSalesTrendUp,
       color: 'primary',
     },
     {
       title: 'الطلبات',
       value: stats.todayOrders,
       icon: ShoppingCart,
-      trend: '+5%',
-      trendUp: true,
+      trend: ordersTrend,
+      trendUp: isOrdersTrendUp,
       color: 'success',
     },
     {
       title: 'الأرباح',
       value: formatCurrency(stats.todayProfit),
       icon: TrendingUp,
-      trend: '+8%',
-      trendUp: true,
       color: 'info',
     },
     {
@@ -167,16 +292,31 @@ export default function Dashboard() {
             مرحباً بك في نظام كاشير المطعم
           </p>
         </div>
-        <div className="text-left">
-          <p className="text-sm text-muted-foreground">التاريخ</p>
-          <p className="font-semibold text-foreground">
-            {new Date().toLocaleDateString('ar-EG', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </p>
+        <div className="flex items-center gap-4">
+          <div className="flex bg-secondary rounded-lg p-1">
+            <Button
+              variant={viewMode === 'daily' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('daily')}
+              className={viewMode === 'daily' ? 'gradient-primary text-primary-foreground' : ''}
+            >
+              يومي
+            </Button>
+            <Button
+              variant={viewMode === 'monthly' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('monthly')}
+              className={viewMode === 'monthly' ? 'gradient-primary text-primary-foreground' : ''}
+            >
+              شهري
+            </Button>
+          </div>
+          <div className="text-left">
+            <p className="text-sm text-muted-foreground">التاريخ</p>
+            <p className="font-semibold text-foreground">
+              {format(new Date(), 'EEEE، d MMMM yyyy', { locale: ar })}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -198,7 +338,7 @@ export default function Dashboard() {
                     {stat.trend && (
                       <div className={`flex items-center gap-1 mt-2 text-sm ${stat.trendUp ? 'text-success' : 'text-destructive'}`}>
                         {stat.trendUp ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                        <span>{stat.trend}</span>
+                        <span>{stat.trend} من أمس</span>
                       </div>
                     )}
                   </div>
@@ -232,7 +372,7 @@ export default function Dashboard() {
         </motion.div>
       )}
 
-      {/* Charts */}
+      {/* Main Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sales Chart */}
         <motion.div
@@ -242,38 +382,78 @@ export default function Dashboard() {
           className="lg:col-span-2"
         >
           <Card className="glass shadow-card">
-            <CardHeader>
-              <CardTitle className="text-foreground">المبيعات - آخر 7 أيام</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-primary" />
+                {viewMode === 'daily' ? 'المبيعات - آخر 7 أيام' : 'المبيعات الشهرية - آخر 6 أشهر'}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={salesData}>
-                    <defs>
-                      <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(35, 95%, 55%)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(35, 95%, 55%)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 22%)" />
-                    <XAxis dataKey="name" stroke="hsl(220, 10%, 60%)" />
-                    <YAxis stroke="hsl(220, 10%, 60%)" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'hsl(220, 18%, 13%)',
-                        border: '1px solid hsl(220, 15%, 22%)',
-                        borderRadius: '8px',
-                      }}
-                      labelStyle={{ color: 'hsl(40, 20%, 95%)' }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke="hsl(35, 95%, 55%)"
-                      strokeWidth={2}
-                      fill="url(#salesGradient)"
-                    />
-                  </AreaChart>
+                  {viewMode === 'daily' ? (
+                    <AreaChart data={salesData}>
+                      <defs>
+                        <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(35, 95%, 55%)" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="hsl(35, 95%, 55%)" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 22%)" />
+                      <XAxis dataKey="name" stroke="hsl(220, 10%, 60%)" />
+                      <YAxis stroke="hsl(220, 10%, 60%)" />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(220, 18%, 13%)',
+                          border: '1px solid hsl(220, 15%, 22%)',
+                          borderRadius: '8px',
+                        }}
+                        formatter={(value: number, name: string) => [
+                          `${value.toFixed(2)} ج.م`,
+                          name === 'value' ? 'المبيعات' : 'الأرباح'
+                        ]}
+                      />
+                      <Legend formatter={(value) => value === 'value' ? 'المبيعات' : 'الأرباح'} />
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="hsl(35, 95%, 55%)"
+                        strokeWidth={2}
+                        fill="url(#salesGradient)"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="profit"
+                        stroke="hsl(142, 76%, 36%)"
+                        strokeWidth={2}
+                        fill="url(#profitGradient)"
+                      />
+                    </AreaChart>
+                  ) : (
+                    <BarChart data={monthlyData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 22%)" />
+                      <XAxis dataKey="name" stroke="hsl(220, 10%, 60%)" />
+                      <YAxis stroke="hsl(220, 10%, 60%)" />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(220, 18%, 13%)',
+                          border: '1px solid hsl(220, 15%, 22%)',
+                          borderRadius: '8px',
+                        }}
+                        formatter={(value: number, name: string) => [
+                          name === 'orders' ? value : `${value.toFixed(2)} ج.م`,
+                          name === 'sales' ? 'المبيعات' : name === 'profit' ? 'الأرباح' : 'الطلبات'
+                        ]}
+                      />
+                      <Legend formatter={(value) => value === 'sales' ? 'المبيعات' : value === 'profit' ? 'الأرباح' : 'الطلبات'} />
+                      <Bar dataKey="sales" fill="hsl(35, 95%, 55%)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="profit" fill="hsl(142, 76%, 36%)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  )}
                 </ResponsiveContainer>
               </div>
             </CardContent>
@@ -288,18 +468,18 @@ export default function Dashboard() {
         >
           <Card className="glass shadow-card">
             <CardHeader>
-              <CardTitle className="text-foreground">توزيع الطلبات</CardTitle>
+              <CardTitle className="text-foreground">توزيع الطلبات اليوم</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px]">
+              <div className="h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={orderTypesData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
+                      innerRadius={50}
+                      outerRadius={70}
                       paddingAngle={5}
                       dataKey="value"
                     >
@@ -316,18 +496,115 @@ export default function Dashboard() {
                     />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="flex justify-center gap-4 mt-4">
-                  {orderTypesData.map((item, index) => (
-                    <div key={item.name} className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: COLORS[index] }}
-                      />
-                      <span className="text-sm text-muted-foreground">{item.name}</span>
+              </div>
+              <div className="flex justify-center gap-4 mt-2">
+                {orderTypesData.map((item, index) => (
+                  <div key={item.name} className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: COLORS[index] }}
+                    />
+                    <span className="text-sm text-muted-foreground">{item.name} ({item.value})</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Secondary Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Hourly Sales Chart */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55 }}
+        >
+          <Card className="glass shadow-card">
+            <CardHeader>
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Clock className="w-5 h-5 text-info" />
+                المبيعات حسب الساعة - اليوم
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={hourlyData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 22%)" />
+                    <XAxis dataKey="hour" stroke="hsl(220, 10%, 60%)" tick={{ fontSize: 10 }} />
+                    <YAxis stroke="hsl(220, 10%, 60%)" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(220, 18%, 13%)',
+                        border: '1px solid hsl(220, 15%, 22%)',
+                        borderRadius: '8px',
+                      }}
+                      formatter={(value: number, name: string) => [
+                        name === 'sales' ? `${value.toFixed(2)} ج.م` : value,
+                        name === 'sales' ? 'المبيعات' : 'الطلبات'
+                      ]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="sales"
+                      stroke="hsl(199, 89%, 48%)"
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(199, 89%, 48%)', r: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Top Products */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+        >
+          <Card className="glass shadow-card">
+            <CardHeader>
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Package className="w-5 h-5 text-success" />
+                أفضل المنتجات مبيعاً
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {topProducts.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>لا توجد بيانات</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {topProducts.map((product, index) => (
+                    <div
+                      key={product.name}
+                      className="flex items-center justify-between p-3 rounded-xl bg-secondary/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
+                          index === 0 ? 'bg-yellow-500/20 text-yellow-500' :
+                          index === 1 ? 'bg-slate-400/20 text-slate-400' :
+                          index === 2 ? 'bg-orange-500/20 text-orange-500' :
+                          'bg-muted text-muted-foreground'
+                        }`}>
+                          {index + 1}
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground line-clamp-1">{product.name}</p>
+                          <p className="text-xs text-muted-foreground">{product.count} وحدة</p>
+                        </div>
+                      </div>
+                      <p className="font-bold text-success">{product.revenue.toFixed(2)} ج.م</p>
                     </div>
                   ))}
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -337,7 +614,7 @@ export default function Dashboard() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
+        transition={{ delay: 0.65 }}
       >
         <Card className="glass shadow-card">
           <CardHeader>
@@ -374,7 +651,7 @@ export default function Dashboard() {
                     </div>
                     <div className="text-left">
                       <p className="font-bold text-foreground">{order.total.toFixed(2)} ج.م</p>
-                      <p className={`text-xs px-2 py-1 rounded-full ${
+                      <Badge className={`text-xs ${
                         order.status === 'completed' ? 'bg-success/20 text-success' :
                         order.status === 'pending' ? 'bg-warning/20 text-warning' :
                         order.status === 'cancelled' ? 'bg-destructive/20 text-destructive' :
@@ -386,7 +663,7 @@ export default function Dashboard() {
                          order.status === 'ready' ? 'جاهز' :
                          order.status === 'delivered' ? 'تم التوصيل' :
                          'ملغي'}
-                      </p>
+                      </Badge>
                     </div>
                   </div>
                 ))}
