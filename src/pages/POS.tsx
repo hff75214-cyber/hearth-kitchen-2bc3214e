@@ -20,7 +20,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { db, Product, Category, Order, OrderItem, Customer, Settings, generateOrderNumber, updateDailySummary, addNotification, deductRawMaterials, logActivity } from '@/lib/database';
-import { printThermalReceipt } from '@/lib/thermalPrint';
+import { printThermalReceipt, printKitchenTicket } from '@/lib/thermalPrint';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -257,6 +257,13 @@ export default function POS() {
           message: `طلب جديد #${orderNumber} بدأ التحضير`,
           relatedId: orderId as number,
         });
+        
+        // Auto-print kitchen ticket for prepared items
+        const kitchenOrder: Order = {
+          ...order,
+          id: orderId as number,
+        };
+        printKitchenTicket(kitchenOrder);
       }
       
       // Add notification for delivery orders
