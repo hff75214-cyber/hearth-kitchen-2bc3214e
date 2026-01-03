@@ -178,7 +178,10 @@ export type PagePermission =
   | 'settings'
   | 'users'
   | 'activity-log'
-  | 'shifts';
+  | 'shifts'
+  | 'loyalty'
+  | 'reservations'
+  | 'expenses';
 
 // جدول المستخدمين المحليين
 export interface SystemUser {
@@ -238,12 +241,74 @@ export interface WorkShift {
   isActive: boolean;
 }
 
+// برنامج ولاء العملاء
+export interface LoyaltyProgram {
+  id?: number;
+  customerId: number;
+  customerName: string;
+  customerPhone: string;
+  points: number;
+  totalSpent: number;
+  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// سجل نقاط الولاء
+export interface LoyaltyTransaction {
+  id?: number;
+  customerId: number;
+  orderId?: number;
+  type: 'earn' | 'redeem';
+  points: number;
+  description: string;
+  createdAt: Date;
+}
+
+// المكافآت
+export interface LoyaltyReward {
+  id?: number;
+  name: string;
+  description: string;
+  pointsCost: number;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+// حجوزات الطاولات
+export interface TableReservation {
+  id?: number;
+  tableId: number;
+  tableName: string;
+  customerName: string;
+  customerPhone: string;
+  guestCount: number;
+  reservationDate: Date;
+  reservationTime: string;
+  duration: number; // بالدقائق
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// المصروفات
+export interface Expense {
+  id?: number;
+  category: 'rent' | 'salaries' | 'utilities' | 'supplies' | 'maintenance' | 'marketing' | 'other';
+  description: string;
+  amount: number;
+  date: Date;
+  notes?: string;
+  createdAt: Date;
+}
+
 // الصلاحيات الافتراضية لكل دور
 export const defaultPermissionsByRole: Record<UserRole, PagePermission[]> = {
-  admin: ['dashboard', 'pos', 'products', 'inventory', 'materials', 'materials-report', 'tables', 'tables-view', 'kitchen', 'delivery', 'customers', 'sales', 'reports', 'settings', 'users', 'activity-log', 'shifts'],
-  cashier: ['pos', 'customers'],
+  admin: ['dashboard', 'pos', 'products', 'inventory', 'materials', 'materials-report', 'tables', 'tables-view', 'kitchen', 'delivery', 'customers', 'sales', 'reports', 'settings', 'users', 'activity-log', 'shifts', 'loyalty', 'reservations', 'expenses'],
+  cashier: ['pos', 'customers', 'loyalty'],
   kitchen: ['kitchen'],
-  waiter: ['pos', 'tables', 'tables-view'],
+  waiter: ['pos', 'tables', 'tables-view', 'reservations'],
   delivery: ['delivery', 'customers'],
 };
 
@@ -275,6 +340,9 @@ export const pageNames: Record<PagePermission, string> = {
   users: 'المستخدمين',
   'activity-log': 'سجل النشاط',
   shifts: 'ورديات العمل',
+  loyalty: 'برنامج الولاء',
+  reservations: 'الحجوزات',
+  expenses: 'المصروفات',
 };
 
 // أسماء أنواع النشاط بالعربي
@@ -319,11 +387,16 @@ class RestaurantDatabase extends Dexie {
   systemUsers!: Table<SystemUser>;
   activityLogs!: Table<ActivityLog>;
   workShifts!: Table<WorkShift>;
+  loyaltyPrograms!: Table<LoyaltyProgram>;
+  loyaltyTransactions!: Table<LoyaltyTransaction>;
+  loyaltyRewards!: Table<LoyaltyReward>;
+  tableReservations!: Table<TableReservation>;
+  expenses!: Table<Expense>;
 
   constructor() {
     super('RestaurantPOS');
     
-    this.version(6).stores({
+    this.version(7).stores({
       products: '++id, name, category, subcategory, type, sku, barcode, isActive',
       categories: '++id, name, type, order, isActive',
       restaurantTables: '++id, number, status, isActive',
@@ -336,7 +409,12 @@ class RestaurantDatabase extends Dexie {
       productIngredients: '++id, productId, rawMaterialId',
       systemUsers: '++id, name, role, isActive',
       activityLogs: '++id, userId, type, createdAt',
-      workShifts: '++id, userId, isActive, startTime'
+      workShifts: '++id, userId, isActive, startTime',
+      loyaltyPrograms: '++id, customerId, customerPhone, tier',
+      loyaltyTransactions: '++id, customerId, orderId, type, createdAt',
+      loyaltyRewards: '++id, name, isActive',
+      tableReservations: '++id, tableId, reservationDate, status, customerPhone',
+      expenses: '++id, category, date, createdAt'
     });
   }
 }

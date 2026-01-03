@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { db, Product, Category, Order, OrderItem, Customer, Settings, generateOrderNumber, updateDailySummary, addNotification, deductRawMaterials, logActivity } from '@/lib/database';
 import { printThermalReceipt, printKitchenTicket } from '@/lib/thermalPrint';
+import { printA5Invoice } from '@/lib/a5Invoice';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -371,7 +372,8 @@ export default function POS() {
           ...orderData,
           createdAt: new Date(orderData.createdAt),
         };
-        printThermalReceipt(order, settings || undefined);
+        // Print A5 professional invoice
+        printA5Invoice(order, settings || undefined);
       } catch (error) {
         console.error('Error printing receipt:', error);
       }
