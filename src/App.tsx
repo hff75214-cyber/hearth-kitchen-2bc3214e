@@ -24,6 +24,9 @@ import Login from "./pages/Login";
 import Users from "./pages/Users";
 import ActivityLog from "./pages/ActivityLog";
 import Shifts from "./pages/Shifts";
+import Loyalty from "./pages/Loyalty";
+import Reservations from "./pages/Reservations";
+import Expenses from "./pages/Expenses";
 
 const queryClient = new QueryClient();
 
@@ -48,10 +51,13 @@ const routePermissions: Record<string, PagePermission> = {
   '/materials-report': 'materials-report',
   '/tables': 'tables',
   '/tables-view': 'tables-view',
+  '/reservations': 'reservations',
   '/kitchen': 'kitchen',
   '/delivery': 'delivery',
   '/customers': 'customers',
+  '/loyalty': 'loyalty',
   '/sales': 'sales',
+  '/expenses': 'expenses',
   '/reports': 'reports',
   '/settings': 'settings',
   '/users': 'users',
@@ -291,6 +297,33 @@ const App = () => {
                 <ProtectedRoute 
                   element={<Shifts />} 
                   requiredPermission="shifts" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/loyalty" element={
+                <ProtectedRoute 
+                  element={<Loyalty />} 
+                  requiredPermission="loyalty" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/reservations" element={
+                <ProtectedRoute 
+                  element={<Reservations />} 
+                  requiredPermission="reservations" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/expenses" element={
+                <ProtectedRoute 
+                  element={<Expenses />} 
+                  requiredPermission="expenses" 
                   userPermissions={userPermissions}
                   defaultPath={defaultPath}
                 />

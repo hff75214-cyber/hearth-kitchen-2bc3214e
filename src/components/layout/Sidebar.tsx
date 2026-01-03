@@ -20,6 +20,9 @@ import {
   UserCog,
   Activity,
   Clock,
+  Gift,
+  CalendarDays,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PagePermission } from '@/lib/database';
@@ -40,10 +43,13 @@ const allMenuItems: MenuItem[] = [
   { path: '/materials-report', icon: BarChart3, label: 'تقرير المواد', permission: 'materials-report' },
   { path: '/tables', icon: UtensilsCrossed, label: 'إدارة الطاولات', permission: 'tables' },
   { path: '/tables-view', icon: Eye, label: 'عرض الطاولات', permission: 'tables-view' },
+  { path: '/reservations', icon: CalendarDays, label: 'الحجوزات', permission: 'reservations' },
   { path: '/kitchen', icon: ChefHat, label: 'شاشة المطبخ', permission: 'kitchen' },
   { path: '/delivery', icon: Truck, label: 'التوصيل', permission: 'delivery' },
   { path: '/customers', icon: Users, label: 'العملاء', permission: 'customers' },
+  { path: '/loyalty', icon: Gift, label: 'برنامج الولاء', permission: 'loyalty' },
   { path: '/sales', icon: FileText, label: 'المبيعات', permission: 'sales' },
+  { path: '/expenses', icon: Wallet, label: 'المصروفات', permission: 'expenses' },
   { path: '/reports', icon: BarChart3, label: 'التقارير', permission: 'reports' },
   { path: '/users', icon: UserCog, label: 'المستخدمين', permission: 'users' },
   { path: '/activity-log', icon: Activity, label: 'سجل النشاط', permission: 'activity-log' },
