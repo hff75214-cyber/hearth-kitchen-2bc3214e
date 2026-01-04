@@ -181,7 +181,9 @@ export type PagePermission =
   | 'shifts'
   | 'loyalty'
   | 'reservations'
-  | 'expenses';
+  | 'expenses'
+  | 'offers'
+  | 'employee-performance';
 
 // جدول المستخدمين المحليين
 export interface SystemUser {
@@ -303,9 +305,27 @@ export interface Expense {
   createdAt: Date;
 }
 
+// العروض والخصومات
+export interface Offer {
+  id?: number;
+  name: string;
+  description: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minOrderAmount?: number;
+  maxDiscount?: number;
+  applicableProducts: number[] | 'all';
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  usageLimit?: number;
+  usageCount: number;
+  createdAt: Date;
+}
+
 // الصلاحيات الافتراضية لكل دور
 export const defaultPermissionsByRole: Record<UserRole, PagePermission[]> = {
-  admin: ['dashboard', 'pos', 'products', 'inventory', 'materials', 'materials-report', 'tables', 'tables-view', 'kitchen', 'delivery', 'customers', 'sales', 'reports', 'settings', 'users', 'activity-log', 'shifts', 'loyalty', 'reservations', 'expenses'],
+  admin: ['dashboard', 'pos', 'products', 'inventory', 'materials', 'materials-report', 'tables', 'tables-view', 'kitchen', 'delivery', 'customers', 'sales', 'reports', 'settings', 'users', 'activity-log', 'shifts', 'loyalty', 'reservations', 'expenses', 'offers', 'employee-performance'],
   cashier: ['pos', 'customers', 'loyalty'],
   kitchen: ['kitchen'],
   waiter: ['pos', 'tables', 'tables-view', 'reservations'],
@@ -343,6 +363,8 @@ export const pageNames: Record<PagePermission, string> = {
   loyalty: 'برنامج الولاء',
   reservations: 'الحجوزات',
   expenses: 'المصروفات',
+  offers: 'العروض',
+  'employee-performance': 'أداء الموظفين',
 };
 
 // أسماء أنواع النشاط بالعربي
@@ -392,11 +414,12 @@ class RestaurantDatabase extends Dexie {
   loyaltyRewards!: Table<LoyaltyReward>;
   tableReservations!: Table<TableReservation>;
   expenses!: Table<Expense>;
+  offers!: Table<Offer>;
 
   constructor() {
     super('RestaurantPOS');
     
-    this.version(7).stores({
+    this.version(8).stores({
       products: '++id, name, category, subcategory, type, sku, barcode, isActive',
       categories: '++id, name, type, order, isActive',
       restaurantTables: '++id, number, status, isActive',
@@ -414,7 +437,8 @@ class RestaurantDatabase extends Dexie {
       loyaltyTransactions: '++id, customerId, orderId, type, createdAt',
       loyaltyRewards: '++id, name, isActive',
       tableReservations: '++id, tableId, reservationDate, status, customerPhone',
-      expenses: '++id, category, date, createdAt'
+      expenses: '++id, category, date, createdAt',
+      offers: '++id, name, isActive, startDate, endDate'
     });
   }
 }
