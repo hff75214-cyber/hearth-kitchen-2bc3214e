@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { SystemUser, defaultPageByRole, PagePermission } from "@/lib/database";
+import { ReservationNotifications } from "@/components/ReservationNotifications";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import POS from "./pages/POS";
@@ -27,6 +28,8 @@ import Shifts from "./pages/Shifts";
 import Loyalty from "./pages/Loyalty";
 import Reservations from "./pages/Reservations";
 import Expenses from "./pages/Expenses";
+import Offers from "./pages/Offers";
+import EmployeePerformance from "./pages/EmployeePerformance";
 
 const queryClient = new QueryClient();
 
@@ -56,9 +59,11 @@ const routePermissions: Record<string, PagePermission> = {
   '/delivery': 'delivery',
   '/customers': 'customers',
   '/loyalty': 'loyalty',
+  '/offers': 'offers',
   '/sales': 'sales',
   '/expenses': 'expenses',
   '/reports': 'reports',
+  '/employee-performance': 'employee-performance',
   '/settings': 'settings',
   '/users': 'users',
   '/activity-log': 'activity-log',
@@ -328,10 +333,29 @@ const App = () => {
                   defaultPath={defaultPath}
                 />
               } />
+              
+              <Route path="/offers" element={
+                <ProtectedRoute 
+                  element={<Offers />} 
+                  requiredPermission="offers" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/employee-performance" element={
+                <ProtectedRoute 
+                  element={<EmployeePerformance />} 
+                  requiredPermission="employee-performance" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
 
               {/* Catch all - redirect to default path */}
               <Route path="*" element={<Navigate to={defaultPath} replace />} />
             </Routes>
+            <ReservationNotifications />
           </MainLayout>
         </BrowserRouter>
       </TooltipProvider>
