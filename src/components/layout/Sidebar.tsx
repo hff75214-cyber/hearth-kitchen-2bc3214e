@@ -25,6 +25,8 @@ import {
   Wallet,
   Tag,
   TrendingUp,
+  Target,
+  PieChart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PagePermission } from '@/lib/database';
@@ -51,10 +53,12 @@ const allMenuItems: MenuItem[] = [
   { path: '/customers', icon: Users, label: 'العملاء', permission: 'customers' },
   { path: '/loyalty', icon: Gift, label: 'برنامج الولاء', permission: 'loyalty' },
   { path: '/offers', icon: Tag, label: 'العروض', permission: 'offers' },
+  { path: '/offers-report', icon: PieChart, label: 'تقرير العروض', permission: 'offers-report' },
   { path: '/sales', icon: FileText, label: 'المبيعات', permission: 'sales' },
   { path: '/expenses', icon: Wallet, label: 'المصروفات', permission: 'expenses' },
   { path: '/reports', icon: BarChart3, label: 'التقارير', permission: 'reports' },
   { path: '/employee-performance', icon: TrendingUp, label: 'أداء الموظفين', permission: 'employee-performance' },
+  { path: '/sales-goals', icon: Target, label: 'أهداف المبيعات', permission: 'sales-goals' },
   { path: '/users', icon: UserCog, label: 'المستخدمين', permission: 'users' },
   { path: '/activity-log', icon: Activity, label: 'سجل النشاط', permission: 'activity-log' },
   { path: '/shifts', icon: Clock, label: 'ورديات العمل', permission: 'shifts' },
