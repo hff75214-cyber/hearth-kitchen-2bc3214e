@@ -29,6 +29,8 @@ import Loyalty from "./pages/Loyalty";
 import Reservations from "./pages/Reservations";
 import Expenses from "./pages/Expenses";
 import Offers from "./pages/Offers";
+import OffersReport from "./pages/OffersReport";
+import SalesGoals from "./pages/SalesGoals";
 import EmployeePerformance from "./pages/EmployeePerformance";
 
 const queryClient = new QueryClient();
@@ -60,10 +62,12 @@ const routePermissions: Record<string, PagePermission> = {
   '/customers': 'customers',
   '/loyalty': 'loyalty',
   '/offers': 'offers',
+  '/offers-report': 'offers-report',
   '/sales': 'sales',
   '/expenses': 'expenses',
   '/reports': 'reports',
   '/employee-performance': 'employee-performance',
+  '/sales-goals': 'sales-goals',
   '/settings': 'settings',
   '/users': 'users',
   '/activity-log': 'activity-log',
@@ -347,6 +351,24 @@ const App = () => {
                 <ProtectedRoute 
                   element={<EmployeePerformance />} 
                   requiredPermission="employee-performance" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/offers-report" element={
+                <ProtectedRoute 
+                  element={<OffersReport />} 
+                  requiredPermission="offers-report" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/sales-goals" element={
+                <ProtectedRoute 
+                  element={<SalesGoals />} 
+                  requiredPermission="sales-goals" 
                   userPermissions={userPermissions}
                   defaultPath={defaultPath}
                 />

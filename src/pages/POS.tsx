@@ -18,8 +18,10 @@ import {
   Check,
   Users,
   UserPlus,
+  Tag,
+  Sparkles,
 } from 'lucide-react';
-import { db, Product, Category, Order, OrderItem, Customer, Settings, generateOrderNumber, updateDailySummary, addNotification, deductRawMaterials, logActivity } from '@/lib/database';
+import { db, Product, Category, Order, OrderItem, Customer, Settings, Offer, generateOrderNumber, updateDailySummary, addNotification, deductRawMaterials, logActivity } from '@/lib/database';
 import { printThermalReceipt, printKitchenTicket } from '@/lib/thermalPrint';
 import { printA5Invoice } from '@/lib/a5Invoice';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -86,18 +88,24 @@ export default function POS() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [isNewCustomer, setIsNewCustomer] = useState(true);
   const [settings, setSettings] = useState<Settings | null>(null);
+  
+  // Auto offers state
+  const [activeOffers, setActiveOffers] = useState<Offer[]>([]);
+  const [appliedOffer, setAppliedOffer] = useState<Offer | null>(null);
+  const [autoDiscountAmount, setAutoDiscountAmount] = useState(0);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    const [productsData, categoriesData, tablesData, customersData, settingsData] = await Promise.all([
+    const [productsData, categoriesData, tablesData, customersData, settingsData, offersData] = await Promise.all([
       db.products.toArray(),
       db.categories.toArray(),
       db.restaurantTables.toArray(),
       db.customers.toArray(),
       db.settings.toArray(),
+      db.offers.toArray(),
     ]);
     setProducts(productsData.filter(p => p.isActive));
     setCategories(categoriesData.filter(c => c.isActive));
@@ -106,7 +114,68 @@ export default function POS() {
     if (settingsData.length > 0) {
       setSettings(settingsData[0]);
     }
+    
+    // Filter active offers
+    const now = new Date();
+    const activeOffersFiltered = offersData.filter(o => 
+      o.isActive && 
+      new Date(o.startDate) <= now && 
+      new Date(o.endDate) >= now &&
+      (!o.usageLimit || o.usageCount < o.usageLimit)
+    );
+    setActiveOffers(activeOffersFiltered);
   };
+
+  // Calculate best applicable offer for cart
+  useEffect(() => {
+    if (cart.length === 0 || activeOffers.length === 0) {
+      setAppliedOffer(null);
+      setAutoDiscountAmount(0);
+      return;
+    }
+
+    const cartSubtotal = cart.reduce((sum, item) => sum + item.total, 0);
+    const cartProductIds = cart.map(item => item.productId);
+
+    let bestOffer: Offer | null = null;
+    let bestDiscount = 0;
+
+    for (const offer of activeOffers) {
+      // Check minimum order amount
+      if (offer.minOrderAmount && cartSubtotal < offer.minOrderAmount) continue;
+
+      // Check applicable products
+      let applicableAmount = 0;
+      if (offer.applicableProducts === 'all') {
+        applicableAmount = cartSubtotal;
+      } else {
+        applicableAmount = cart
+          .filter(item => (offer.applicableProducts as number[]).includes(item.productId))
+          .reduce((sum, item) => sum + item.total, 0);
+      }
+
+      if (applicableAmount === 0) continue;
+
+      // Calculate discount
+      let offerDiscount = 0;
+      if (offer.discountType === 'percentage') {
+        offerDiscount = applicableAmount * (offer.discountValue / 100);
+        if (offer.maxDiscount && offerDiscount > offer.maxDiscount) {
+          offerDiscount = offer.maxDiscount;
+        }
+      } else {
+        offerDiscount = Math.min(offer.discountValue, applicableAmount);
+      }
+
+      if (offerDiscount > bestDiscount) {
+        bestDiscount = offerDiscount;
+        bestOffer = offer;
+      }
+    }
+
+    setAppliedOffer(bestOffer);
+    setAutoDiscountAmount(bestDiscount);
+  }, [cart, activeOffers]);
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -179,8 +248,9 @@ export default function POS() {
   };
 
   const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
-  const discountAmount = discountType === 'percentage' ? (subtotal * discount / 100) : discount;
-  const total = subtotal - discountAmount;
+  const manualDiscountAmount = discountType === 'percentage' ? (subtotal * discount / 100) : discount;
+  const totalDiscountAmount = manualDiscountAmount + autoDiscountAmount;
+  const total = subtotal - totalDiscountAmount;
   const totalCost = cart.reduce((sum, item) => sum + (item.costPrice * item.quantity), 0);
   const profit = total - totalCost;
 
@@ -231,8 +301,8 @@ export default function POS() {
         tableName: tableData?.name,
         items: cart,
         subtotal,
-        discount: discountAmount,
-        discountType,
+        discount: totalDiscountAmount,
+        discountType: appliedOffer ? 'fixed' : discountType,
         total,
         totalCost,
         profit,
@@ -329,6 +399,13 @@ export default function POS() {
         });
       }
 
+      // Update offer usage count if an offer was applied
+      if (appliedOffer && appliedOffer.id) {
+        await db.offers.update(appliedOffer.id, {
+          usageCount: appliedOffer.usageCount + 1
+        });
+      }
+
       // Update daily summary
       await updateDailySummary(new Date());
 
@@ -356,6 +433,8 @@ export default function POS() {
       setIsCheckoutOpen(false);
       setSelectedCustomerId(null);
       setIsNewCustomer(true);
+      setAppliedOffer(null);
+      setAutoDiscountAmount(0);
 
       toast({ title: 'تم إنشاء الطلب', description: `رقم الطلب: ${orderNumber}` });
       loadData();
@@ -592,10 +671,19 @@ export default function POS() {
               <span>المجموع</span>
               <span>{subtotal.toFixed(2)} ج.م</span>
             </div>
-            {discountAmount > 0 && (
+            {appliedOffer && autoDiscountAmount > 0 && (
+              <div className="flex justify-between text-primary">
+                <span className="flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" />
+                  {appliedOffer.name}
+                </span>
+                <span>-{autoDiscountAmount.toFixed(2)} ج.م</span>
+              </div>
+            )}
+            {manualDiscountAmount > 0 && (
               <div className="flex justify-between text-success">
-                <span>الخصم</span>
-                <span>-{discountAmount.toFixed(2)} ج.م</span>
+                <span>خصم يدوي</span>
+                <span>-{manualDiscountAmount.toFixed(2)} ج.م</span>
               </div>
             )}
             <div className="flex justify-between text-lg font-bold text-foreground pt-2 border-t border-border">
