@@ -27,6 +27,8 @@ import {
   TrendingUp,
   Target,
   PieChart,
+  Building2,
+  Package2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PagePermission } from '@/lib/database';
@@ -49,6 +51,7 @@ const allMenuItems: MenuItem[] = [
   { path: '/tables-view', icon: Eye, label: 'عرض الطاولات', permission: 'tables-view' },
   { path: '/reservations', icon: CalendarDays, label: 'الحجوزات', permission: 'reservations' },
   { path: '/kitchen', icon: ChefHat, label: 'شاشة المطبخ', permission: 'kitchen' },
+  { path: '/kitchen-stats', icon: PieChart, label: 'إحصائيات المطبخ', permission: 'kitchen-stats' },
   { path: '/delivery', icon: Truck, label: 'التوصيل', permission: 'delivery' },
   { path: '/customers', icon: Users, label: 'العملاء', permission: 'customers' },
   { path: '/loyalty', icon: Gift, label: 'برنامج الولاء', permission: 'loyalty' },
@@ -59,6 +62,8 @@ const allMenuItems: MenuItem[] = [
   { path: '/reports', icon: BarChart3, label: 'التقارير', permission: 'reports' },
   { path: '/employee-performance', icon: TrendingUp, label: 'أداء الموظفين', permission: 'employee-performance' },
   { path: '/sales-goals', icon: Target, label: 'أهداف المبيعات', permission: 'sales-goals' },
+  { path: '/branches', icon: Building2, label: 'الفروع', permission: 'branches' },
+  { path: '/suppliers', icon: Package2, label: 'الموردين', permission: 'suppliers' },
   { path: '/users', icon: UserCog, label: 'المستخدمين', permission: 'users' },
   { path: '/activity-log', icon: Activity, label: 'سجل النشاط', permission: 'activity-log' },
   { path: '/shifts', icon: Clock, label: 'ورديات العمل', permission: 'shifts' },

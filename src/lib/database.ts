@@ -171,6 +171,7 @@ export type PagePermission =
   | 'tables' 
   | 'tables-view' 
   | 'kitchen' 
+  | 'kitchen-stats'
   | 'delivery' 
   | 'customers' 
   | 'sales' 
@@ -185,7 +186,9 @@ export type PagePermission =
   | 'offers'
   | 'offers-report'
   | 'employee-performance'
-  | 'sales-goals';
+  | 'sales-goals'
+  | 'branches'
+  | 'suppliers';
 
 // جدول المستخدمين المحليين
 export interface SystemUser {
@@ -340,9 +343,9 @@ export interface SalesGoal {
 
 // الصلاحيات الافتراضية لكل دور
 export const defaultPermissionsByRole: Record<UserRole, PagePermission[]> = {
-  admin: ['dashboard', 'pos', 'products', 'inventory', 'materials', 'materials-report', 'tables', 'tables-view', 'kitchen', 'delivery', 'customers', 'sales', 'reports', 'settings', 'users', 'activity-log', 'shifts', 'loyalty', 'reservations', 'expenses', 'offers', 'offers-report', 'employee-performance', 'sales-goals'],
+  admin: ['dashboard', 'pos', 'products', 'inventory', 'materials', 'materials-report', 'tables', 'tables-view', 'kitchen', 'kitchen-stats', 'delivery', 'customers', 'sales', 'reports', 'settings', 'users', 'activity-log', 'shifts', 'loyalty', 'reservations', 'expenses', 'offers', 'offers-report', 'employee-performance', 'sales-goals', 'branches', 'suppliers'],
   cashier: ['pos', 'customers', 'loyalty'],
-  kitchen: ['kitchen'],
+  kitchen: ['kitchen', 'kitchen-stats'],
   waiter: ['pos', 'tables', 'tables-view', 'reservations'],
   delivery: ['delivery', 'customers'],
 };
@@ -367,6 +370,7 @@ export const pageNames: Record<PagePermission, string> = {
   tables: 'إدارة الطاولات',
   'tables-view': 'عرض الطاولات',
   kitchen: 'شاشة المطبخ',
+  'kitchen-stats': 'إحصائيات المطبخ',
   delivery: 'التوصيل',
   customers: 'العملاء',
   sales: 'المبيعات',
@@ -382,6 +386,8 @@ export const pageNames: Record<PagePermission, string> = {
   'offers-report': 'تقرير العروض',
   'employee-performance': 'أداء الموظفين',
   'sales-goals': 'أهداف المبيعات',
+  branches: 'الفروع',
+  suppliers: 'الموردين',
 };
 
 // أسماء أنواع النشاط بالعربي

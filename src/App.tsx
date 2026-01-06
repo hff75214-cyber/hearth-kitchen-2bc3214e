@@ -19,6 +19,7 @@ import Sales from "./pages/Sales";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Kitchen from "./pages/Kitchen";
+import KitchenStats from "./pages/KitchenStats";
 import Customers from "./pages/Customers";
 import Delivery from "./pages/Delivery";
 import Login from "./pages/Login";
@@ -32,6 +33,8 @@ import Offers from "./pages/Offers";
 import OffersReport from "./pages/OffersReport";
 import SalesGoals from "./pages/SalesGoals";
 import EmployeePerformance from "./pages/EmployeePerformance";
+import Branches from "./pages/Branches";
+import Suppliers from "./pages/Suppliers";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +61,7 @@ const routePermissions: Record<string, PagePermission> = {
   '/tables-view': 'tables-view',
   '/reservations': 'reservations',
   '/kitchen': 'kitchen',
+  '/kitchen-stats': 'kitchen-stats',
   '/delivery': 'delivery',
   '/customers': 'customers',
   '/loyalty': 'loyalty',
@@ -68,6 +72,8 @@ const routePermissions: Record<string, PagePermission> = {
   '/reports': 'reports',
   '/employee-performance': 'employee-performance',
   '/sales-goals': 'sales-goals',
+  '/branches': 'branches',
+  '/suppliers': 'suppliers',
   '/settings': 'settings',
   '/users': 'users',
   '/activity-log': 'activity-log',
@@ -369,6 +375,33 @@ const App = () => {
                 <ProtectedRoute 
                   element={<SalesGoals />} 
                   requiredPermission="sales-goals" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/kitchen-stats" element={
+                <ProtectedRoute 
+                  element={<KitchenStats />} 
+                  requiredPermission="kitchen-stats" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/branches" element={
+                <ProtectedRoute 
+                  element={<Branches />} 
+                  requiredPermission="branches" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/suppliers" element={
+                <ProtectedRoute 
+                  element={<Suppliers />} 
+                  requiredPermission="suppliers" 
                   userPermissions={userPermissions}
                   defaultPath={defaultPath}
                 />
