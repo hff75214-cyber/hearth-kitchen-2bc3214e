@@ -777,46 +777,7 @@ export async function generateOrderNumber(): Promise<string> {
   return `ORD-${dateStr}-${String(todayOrders + 1).padStart(4, '0')}`;
 }
 
-export async function exportDatabase(): Promise<string> {
-  const data = {
-    products: await db.products.toArray(),
-    categories: await db.categories.toArray(),
-    tables: await db.restaurantTables.toArray(),
-    orders: await db.orders.toArray(),
-    settings: await db.settings.toArray(),
-    dailySummaries: await db.dailySummaries.toArray(),
-    exportDate: new Date().toISOString(),
-  };
-  
-  return JSON.stringify(data, null, 2);
-}
-
-export async function importDatabase(jsonData: string): Promise<void> {
-  const data = JSON.parse(jsonData);
-  
-  await db.transaction('rw', [db.products, db.categories, db.restaurantTables, db.orders, db.settings, db.dailySummaries], async () => {
-    await db.products.clear();
-    await db.categories.clear();
-    await db.restaurantTables.clear();
-    await db.orders.clear();
-    await db.settings.clear();
-    await db.dailySummaries.clear();
-    
-    if (data.products?.length) await db.products.bulkAdd(data.products);
-    if (data.categories?.length) await db.categories.bulkAdd(data.categories);
-    if (data.tables?.length) await db.restaurantTables.bulkAdd(data.tables);
-    if (data.orders?.length) {
-      const orders = data.orders.map((o: Order) => ({
-        ...o,
-        createdAt: new Date(o.createdAt),
-        completedAt: o.completedAt ? new Date(o.completedAt) : undefined,
-      }));
-      await db.orders.bulkAdd(orders);
-    }
-    if (data.settings?.length) await db.settings.bulkAdd(data.settings);
-    if (data.dailySummaries?.length) await db.dailySummaries.bulkAdd(data.dailySummaries);
-  });
-}
+// Legacy export function - use databaseExport.ts for full backup
 
 export async function updateDailySummary(date: Date): Promise<void> {
   const dateStr = date.toISOString().split('T')[0];

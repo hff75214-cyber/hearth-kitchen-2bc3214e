@@ -35,6 +35,7 @@ import SalesGoals from "./pages/SalesGoals";
 import EmployeePerformance from "./pages/EmployeePerformance";
 import Branches from "./pages/Branches";
 import Suppliers from "./pages/Suppliers";
+import CustomerDisplay from "./pages/CustomerDisplay";
 
 const queryClient = new QueryClient();
 
@@ -159,12 +160,18 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <MainLayout 
-            userName={currentUser.name} 
-            userRole={currentUser.role}
-            userPermissions={userPermissions}
-            onLogout={handleLogout}
-          >
+          <Routes>
+            {/* Customer Display - Public route without layout */}
+            <Route path="/customer-display" element={<CustomerDisplay />} />
+            
+            {/* Main App Routes */}
+            <Route path="/*" element={
+              <MainLayout 
+                userName={currentUser.name} 
+                userRole={currentUser.role}
+                userPermissions={userPermissions}
+                onLogout={handleLogout}
+              >
             <Routes>
               {/* Default redirect based on role */}
               <Route path="/" element={
@@ -412,6 +419,8 @@ const App = () => {
             </Routes>
             <ReservationNotifications />
           </MainLayout>
+            } />
+          </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

@@ -254,6 +254,22 @@ export default function POS() {
   const totalCost = cart.reduce((sum, item) => sum + (item.costPrice * item.quantity), 0);
   const profit = total - totalCost;
 
+  // Update customer display whenever cart changes
+  useEffect(() => {
+    const displayData = {
+      items: cart.map(item => ({
+        productName: item.productName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.total,
+      })),
+      subtotal,
+      discount: totalDiscountAmount,
+      total,
+    };
+    localStorage.setItem('customerDisplayOrder', JSON.stringify(displayData));
+  }, [cart, subtotal, totalDiscountAmount, total]);
+
   const handleCheckout = async () => {
     if (cart.length === 0) {
       toast({ title: 'السلة فارغة', description: 'أضف منتجات للمتابعة', variant: 'destructive' });
@@ -423,6 +439,10 @@ export default function POS() {
 
       // Store order for receipt printing
       setReceiptContent(JSON.stringify({ ...order, orderNumber }));
+
+      // Notify customer display of completion
+      localStorage.setItem('customerDisplayComplete', Date.now().toString());
+      localStorage.removeItem('customerDisplayOrder');
 
       // Reset
       setCart([]);
