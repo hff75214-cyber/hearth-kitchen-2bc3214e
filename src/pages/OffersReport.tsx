@@ -11,8 +11,10 @@ import {
   BarChart3,
   PieChart as PieChartIcon,
   CheckCircle2,
+  FileText,
 } from 'lucide-react';
-import { db, Offer, Order } from '@/lib/database';
+import { db, Offer, Order, Settings } from '@/lib/database';
+import { generatePDFReport } from '@/lib/pdfReport';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,11 +51,20 @@ export default function OffersReport() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [analytics, setAnalytics] = useState<OfferAnalytics[]>([]);
   const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
+    loadSettings();
     loadData();
   }, []);
+
+  const loadSettings = async () => {
+    const settingsData = await db.settings.toArray();
+    if (settingsData.length > 0) {
+      setSettings(settingsData[0]);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -150,103 +161,36 @@ export default function OffersReport() {
   });
 
   const exportReport = () => {
-    const reportContent = `
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-  <meta charset="UTF-8">
-  <title>تقرير فعالية العروض</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 40px; direction: rtl; background: #f5f5f5; }
-    .container { max-width: 900px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-    h1 { color: #1a1a1a; border-bottom: 3px solid #6366f1; padding-bottom: 15px; }
-    h2 { color: #333; margin-top: 30px; }
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0; }
-    .stat { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; }
-    .stat-value { font-size: 28px; font-weight: bold; }
-    .stat-label { font-size: 12px; opacity: 0.9; margin-top: 5px; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th, td { border: 1px solid #e5e5e5; padding: 12px; text-align: right; }
-    th { background: #f8f9fa; font-weight: bold; }
-    tr:nth-child(even) { background: #fafafa; }
-    .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
-    .badge-success { background: #dcfce7; color: #16a34a; }
-    .badge-warning { background: #fef3c7; color: #d97706; }
-    .badge-danger { background: #fee2e2; color: #dc2626; }
-    .footer { margin-top: 40px; text-align: center; color: #666; font-size: 12px; border-top: 1px solid #eee; padding-top: 20px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>📊 تقرير فعالية العروض والخصومات</h1>
-    <p>التاريخ: ${format(new Date(), 'dd/MM/yyyy', { locale: ar })}</p>
-    
-    <div class="stats">
-      <div class="stat">
-        <div class="stat-value">${totalOffers}</div>
-        <div class="stat-label">إجمالي العروض</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">${activeOffers}</div>
-        <div class="stat-label">عروض نشطة</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">${totalUsage}</div>
-        <div class="stat-label">إجمالي الاستخدام</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">${totalDiscountGiven.toFixed(2)}</div>
-        <div class="stat-label">إجمالي الخصومات (ج.م)</div>
-      </div>
-    </div>
-
-    <h2>تفاصيل العروض</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>العرض</th>
-          <th>النوع</th>
-          <th>القيمة</th>
-          <th>الاستخدام</th>
-          <th>المبيعات</th>
-          <th>الخصومات</th>
-          <th>الفعالية</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${analytics.map(a => `
-          <tr>
-            <td>${a.offer.name}</td>
-            <td>${a.offer.discountType === 'percentage' ? 'نسبة' : 'ثابت'}</td>
-            <td>${a.offer.discountType === 'percentage' ? a.offer.discountValue + '%' : a.offer.discountValue + ' ج.م'}</td>
-            <td>${a.ordersCount}</td>
-            <td>${a.totalSales.toFixed(2)} ج.م</td>
-            <td>${a.totalDiscount.toFixed(2)} ج.م</td>
-            <td>
-              <span class="badge ${a.effectivenessScore >= 70 ? 'badge-success' : a.effectivenessScore >= 40 ? 'badge-warning' : 'badge-danger'}">
-                ${a.effectivenessScore.toFixed(0)}%
-              </span>
-            </td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-
-    <div class="footer">
-      <p>تم إنشاء هذا التقرير تلقائياً بواسطة نظام نقطة البيع</p>
-    </div>
-  </div>
-</body>
-</html>
-    `;
-
-    const blob = new Blob([reportContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `offers-report-${format(new Date(), 'yyyy-MM-dd')}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
+    generatePDFReport({
+      title: 'تقرير فعالية العروض',
+      subtitle: `التاريخ: ${format(new Date(), 'dd/MM/yyyy', { locale: ar })}`,
+      data: [
+        {
+          type: 'stats',
+          title: 'ملخص العروض',
+          stats: [
+            { label: 'إجمالي العروض', value: totalOffers.toString(), color: '#6366f1' },
+            { label: 'عروض نشطة', value: activeOffers.toString(), color: '#10b981' },
+            { label: 'إجمالي الاستخدام', value: totalUsage.toString(), color: '#3b82f6' },
+            { label: 'إجمالي الخصومات', value: `${totalDiscountGiven.toFixed(0)} ج.م`, color: '#f59e0b' },
+          ],
+        },
+        {
+          type: 'table',
+          title: 'تفاصيل العروض',
+          tableHeaders: ['العرض', 'النوع', 'القيمة', 'الاستخدام', 'المبيعات', 'الخصومات', 'الفعالية'],
+          tableRows: analytics.map(a => [
+            a.offer.name,
+            a.offer.discountType === 'percentage' ? 'نسبة' : 'ثابت',
+            a.offer.discountType === 'percentage' ? `${a.offer.discountValue}%` : `${a.offer.discountValue} ج.م`,
+            a.ordersCount.toString(),
+            `${a.totalSales.toFixed(0)} ج.م`,
+            `${a.totalDiscount.toFixed(0)} ج.م`,
+            `${a.effectivenessScore.toFixed(0)}%`,
+          ]),
+        },
+      ],
+    }, settings);
     toast({ title: 'تم تصدير التقرير بنجاح' });
   };
 
