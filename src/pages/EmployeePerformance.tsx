@@ -12,8 +12,10 @@ import {
   Calendar,
   BarChart3,
   Target,
+  FileText,
 } from 'lucide-react';
-import { db, Order, SystemUser, WorkShift } from '@/lib/database';
+import { db, Order, SystemUser, WorkShift, Settings } from '@/lib/database';
+import { generatePDFReport } from '@/lib/pdfReport';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -70,10 +72,22 @@ export default function EmployeePerformance() {
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<'week' | 'month' | 'year'>('month');
   const [selectedUser, setSelectedUser] = useState<number | 'all'>('all');
+  const [settings, setSettings] = useState<Settings | null>(null);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   useEffect(() => {
     loadData();
   }, [dateRange]);
+
+  const loadSettings = async () => {
+    const settingsData = await db.settings.toArray();
+    if (settingsData.length > 0) {
+      setSettings(settingsData[0]);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -220,134 +234,43 @@ export default function EmployeePerformance() {
   };
 
   const exportReport = () => {
-    const reportHtml = `
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-  <meta charset="UTF-8">
-  <title>تقرير أداء الموظفين - ${dateRange === 'week' ? 'الأسبوع' : dateRange === 'month' ? 'الشهر' : 'السنة'}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-      background: #f5f5f5;
-      padding: 40px;
-      color: #333;
-    }
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-      overflow: hidden;
-    }
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 40px;
-      text-align: center;
-    }
-    .header h1 { font-size: 32px; margin-bottom: 10px; }
-    .header p { opacity: 0.9; }
-    .section { padding: 30px; border-top: 1px solid #eee; }
-    .section-title {
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 20px;
-      color: #333;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .section-title::before {
-      content: '';
-      width: 4px;
-      height: 24px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 2px;
-    }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 15px; text-align: right; border-bottom: 1px solid #eee; }
-    th { background: #f8f9fa; font-weight: 600; color: #555; }
-    tr:hover { background: #f8f9fa; }
-    .badge {
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    .badge-up { background: #d1fae5; color: #065f46; }
-    .badge-down { background: #fee2e2; color: #991b1b; }
-    .rank { font-weight: bold; color: #667eea; }
-    .footer {
-      background: #f8f9fa;
-      padding: 20px 40px;
-      text-align: center;
-      color: #666;
-      font-size: 12px;
-    }
-    @media print {
-      body { background: white; padding: 0; }
-      .container { box-shadow: none; }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>📊 تقرير أداء الموظفين</h1>
-      <p>${dateRange === 'week' ? 'آخر أسبوع' : dateRange === 'month' ? 'هذا الشهر' : 'هذه السنة'} - ${new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-    </div>
-    
-    <div class="section">
-      <div class="section-title">ترتيب الموظفين حسب المبيعات</div>
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>الموظف</th>
-            <th>المبيعات</th>
-            <th>الأرباح</th>
-            <th>الطلبات</th>
-            <th>متوسط الطلب</th>
-            <th>التغير</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${performances.map((p, i) => `
-            <tr>
-              <td class="rank">${i + 1}</td>
-              <td><strong>${p.userName}</strong></td>
-              <td>${p.totalSales.toFixed(0)} ج.م</td>
-              <td>${p.totalProfit.toFixed(0)} ج.م</td>
-              <td>${p.ordersCount}</td>
-              <td>${p.avgOrderValue.toFixed(0)} ج.م</td>
-              <td>
-                <span class="badge ${p.salesChange >= 0 ? 'badge-up' : 'badge-down'}">
-                  ${p.salesChange >= 0 ? '↑' : '↓'} ${Math.abs(p.salesChange).toFixed(1)}%
-                </span>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-    
-    <div class="footer">
-      تم إنشاء هذا التقرير تلقائياً بتاريخ ${new Date().toLocaleString('ar-EG')}
-    </div>
-  </div>
-</body>
-</html>
-    `;
-    
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(reportHtml);
-      printWindow.document.close();
-      printWindow.print();
-    }
+    generatePDFReport({
+      title: 'تقرير أداء الموظفين',
+      subtitle: dateRange === 'week' ? 'آخر أسبوع' : dateRange === 'month' ? 'هذا الشهر' : 'هذه السنة',
+      data: [
+        {
+          type: 'stats',
+          title: 'ملخص عام',
+          stats: [
+            { label: 'عدد الموظفين', value: performances.length.toString(), color: '#3b82f6' },
+            { label: 'إجمالي المبيعات', value: `${performances.reduce((s, p) => s + p.totalSales, 0).toFixed(0)} ج.م`, color: '#f97316' },
+            { label: 'إجمالي الأرباح', value: `${performances.reduce((s, p) => s + p.totalProfit, 0).toFixed(0)} ج.م`, color: '#10b981' },
+            { label: 'إجمالي الطلبات', value: performances.reduce((s, p) => s + p.ordersCount, 0).toString(), color: '#8b5cf6' },
+          ],
+        },
+        {
+          type: 'table',
+          title: 'أداء الموظفين بالتفصيل',
+          tableHeaders: ['#', 'الموظف', 'المبيعات', 'الأرباح', 'الطلبات', 'متوسط الطلب', 'ساعات العمل'],
+          tableRows: performances.map((p, i) => [
+            (i + 1).toString(),
+            p.userName,
+            `${p.totalSales.toFixed(0)} ج.م`,
+            `${p.totalProfit.toFixed(0)} ج.م`,
+            p.ordersCount.toString(),
+            `${p.avgOrderValue.toFixed(0)} ج.م`,
+            `${p.totalHours.toFixed(1)} ساعة`,
+          ]),
+        },
+        {
+          type: 'text',
+          title: 'ملاحظات',
+          text: performances.length > 0 
+            ? `أفضل موظف: ${performances[0].userName} بمبيعات ${performances[0].totalSales.toFixed(0)} ج.م`
+            : 'لا توجد بيانات',
+        },
+      ],
+    }, settings);
   };
 
   const filteredPerformances = selectedUser === 'all' 

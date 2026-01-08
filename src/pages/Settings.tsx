@@ -297,6 +297,52 @@ export default function Settings() {
               </div>
 
               <div className="space-y-2">
+                <Label className="text-foreground">شعار المطعم</Label>
+                <div className="flex gap-3 items-center">
+                  {settings.logo ? (
+                    <img 
+                      src={settings.logo} 
+                      alt="Logo" 
+                      className="w-16 h-16 rounded-xl object-cover border border-border"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center border border-border">
+                      <Store className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1 space-y-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setSettings({ ...settings, logo: reader.result as string });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="bg-secondary border-border"
+                    />
+                    {settings.logo && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSettings({ ...settings, logo: undefined })}
+                        className="text-destructive border-destructive/30"
+                      >
+                        <X className="w-3 h-3 ml-1" />
+                        إزالة الشعار
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <Label className="text-foreground">تذييل الفاتورة</Label>
                 <Textarea
                   value={settings.receiptFooter || ''}

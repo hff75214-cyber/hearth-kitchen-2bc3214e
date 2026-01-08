@@ -11,8 +11,10 @@ import {
   Calendar,
   Download,
   BarChart3,
+  FileText,
 } from 'lucide-react';
-import { db, Order, Product, DailySummary } from '@/lib/database';
+import { db, Order, Product, DailySummary, Settings } from '@/lib/database';
+import { generatePDFReport } from '@/lib/pdfReport';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -64,10 +66,22 @@ export default function Reports() {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [dateRange, setDateRange] = useState<'week' | 'month' | 'year'>('month');
   const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<Settings | null>(null);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   useEffect(() => {
     loadReportData();
   }, [dateRange]);
+
+  const loadSettings = async () => {
+    const settingsData = await db.settings.toArray();
+    if (settingsData.length > 0) {
+      setSettings(settingsData[0]);
+    }
+  };
 
   const loadReportData = async () => {
     setLoading(true);
@@ -198,233 +212,56 @@ export default function Reports() {
   const exportReport = () => {
     if (!reportData) return;
     
-    // Generate beautiful PDF-style HTML report
-    const reportHtml = `
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-  <meta charset="UTF-8">
-  <title>تقرير المبيعات - ${dateRange === 'week' ? 'الأسبوع' : dateRange === 'month' ? 'الشهر' : 'السنة'}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-      background: #f5f5f5;
-      padding: 40px;
-      color: #333;
-    }
-    .report-container {
-      max-width: 900px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-      overflow: hidden;
-    }
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 40px;
-      text-align: center;
-    }
-    .header h1 { font-size: 32px; margin-bottom: 10px; }
-    .header p { opacity: 0.9; font-size: 16px; }
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
-      padding: 30px;
-      background: #f8f9fa;
-    }
-    .stat-card {
-      background: white;
-      padding: 25px;
-      border-radius: 16px;
-      text-align: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-    }
-    .stat-value {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-    .stat-label { color: #666; font-size: 14px; }
-    .stat-card:nth-child(1) .stat-value { color: #667eea; }
-    .stat-card:nth-child(2) .stat-value { color: #10b981; }
-    .stat-card:nth-child(3) .stat-value { color: #3b82f6; }
-    .stat-card:nth-child(4) .stat-value { color: #f59e0b; }
-    .section { padding: 30px; border-top: 1px solid #eee; }
-    .section-title {
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 20px;
-      color: #333;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .section-title::before {
-      content: '';
-      width: 4px;
-      height: 24px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 2px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-    }
-    th, td {
-      padding: 15px;
-      text-align: right;
-      border-bottom: 1px solid #eee;
-    }
-    th {
-      background: #f8f9fa;
-      font-weight: 600;
-      color: #555;
-    }
-    tr:hover { background: #f8f9fa; }
-    .progress-bar {
-      width: 100%;
-      height: 8px;
-      background: #e5e7eb;
-      border-radius: 4px;
-      overflow: hidden;
-      margin-top: 8px;
-    }
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #667eea, #764ba2);
-      border-radius: 4px;
-    }
-    .type-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-    .type-card {
-      padding: 20px;
-      border-radius: 12px;
-      text-align: center;
-    }
-    .type-card:nth-child(1) { background: #fef3c7; color: #92400e; }
-    .type-card:nth-child(2) { background: #d1fae5; color: #065f46; }
-    .type-card:nth-child(3) { background: #dbeafe; color: #1e40af; }
-    .type-value { font-size: 24px; font-weight: 700; }
-    .type-label { font-size: 14px; margin-top: 5px; }
-    .footer {
-      background: #f8f9fa;
-      padding: 20px 40px;
-      text-align: center;
-      color: #666;
-      font-size: 12px;
-    }
-    @media print {
-      body { background: white; padding: 0; }
-      .report-container { box-shadow: none; }
-    }
-  </style>
-</head>
-<body>
-  <div class="report-container">
-    <div class="header">
-      <h1>📊 تقرير المبيعات</h1>
-      <p>${dateRange === 'week' ? 'آخر أسبوع' : dateRange === 'month' ? 'هذا الشهر' : 'هذه السنة'} - ${new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-    </div>
-    
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-value">${reportData.totalSales.toFixed(0)}</div>
-        <div class="stat-label">إجمالي المبيعات (ج.م)</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${reportData.totalProfit.toFixed(0)}</div>
-        <div class="stat-label">إجمالي الأرباح (ج.م)</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${reportData.totalOrders}</div>
-        <div class="stat-label">عدد الطلبات</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${reportData.avgOrderValue.toFixed(0)}</div>
-        <div class="stat-label">متوسط الطلب (ج.م)</div>
-      </div>
-    </div>
-    
-    <div class="section">
-      <div class="section-title">توزيع المبيعات حسب النوع</div>
-      <div class="type-grid">
-        ${reportData.salesByType.map(item => `
-          <div class="type-card">
-            <div class="type-value">${item.value.toFixed(0)} ج.م</div>
-            <div class="type-label">${item.name}</div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-    
-    <div class="section">
-      <div class="section-title">الأصناف الأكثر مبيعاً</div>
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>الصنف</th>
-            <th>الكمية المباعة</th>
-            <th>الإيرادات</th>
-            <th>النسبة</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${reportData.topProducts.map((product, index) => {
-            const maxRevenue = Math.max(...reportData.topProducts.map(p => p.revenue));
-            const percentage = (product.revenue / maxRevenue) * 100;
-            return `
-              <tr>
-                <td>${index + 1}</td>
-                <td><strong>${product.name}</strong></td>
-                <td>${product.count}</td>
-                <td>${product.revenue.toFixed(0)} ج.م</td>
-                <td>
-                  <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${percentage}%"></div>
-                  </div>
-                </td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
-    
-    <div class="section">
-      <div class="section-title">طرق الدفع</div>
-      <div class="type-grid">
-        ${reportData.salesByPayment.map(item => `
-          <div class="type-card">
-            <div class="type-value">${item.value.toFixed(0)} ج.م</div>
-            <div class="type-label">${item.name}</div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-    
-    <div class="footer">
-      تم إنشاء هذا التقرير تلقائياً بتاريخ ${new Date().toLocaleString('ar-EG')}
-    </div>
-  </div>
-</body>
-</html>
-    `;
-    
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(reportHtml);
-      printWindow.document.close();
-      printWindow.print();
-    }
+    generatePDFReport({
+      title: 'تقرير المبيعات',
+      subtitle: dateRange === 'week' ? 'آخر أسبوع' : dateRange === 'month' ? 'هذا الشهر' : 'هذه السنة',
+      data: [
+        {
+          type: 'stats',
+          title: 'ملخص الأداء',
+          stats: [
+            { label: 'إجمالي المبيعات', value: `${reportData.totalSales.toFixed(0)} ج.م`, color: '#f97316' },
+            { label: 'إجمالي الأرباح', value: `${reportData.totalProfit.toFixed(0)} ج.م`, color: '#10b981' },
+            { label: 'عدد الطلبات', value: reportData.totalOrders.toString(), color: '#3b82f6' },
+            { label: 'متوسط الطلب', value: `${reportData.avgOrderValue.toFixed(0)} ج.م`, color: '#8b5cf6' },
+          ],
+        },
+        {
+          type: 'table',
+          title: 'الأصناف الأكثر مبيعاً',
+          tableHeaders: ['#', 'الصنف', 'الكمية', 'الإيرادات'],
+          tableRows: reportData.topProducts.slice(0, 10).map((p, i) => [
+            (i + 1).toString(),
+            p.name,
+            p.count.toString(),
+            `${p.revenue.toFixed(0)} ج.م`,
+          ]),
+        },
+        {
+          type: 'table',
+          title: 'توزيع المبيعات حسب النوع',
+          tableHeaders: ['النوع', 'المبيعات'],
+          tableRows: reportData.salesByType.map(s => [s.name, `${s.value.toFixed(0)} ج.م`]),
+        },
+        {
+          type: 'table',
+          title: 'طرق الدفع',
+          tableHeaders: ['الطريقة', 'المبلغ'],
+          tableRows: reportData.salesByPayment.map(s => [s.name, `${s.value.toFixed(0)} ج.م`]),
+        },
+        {
+          type: 'table',
+          title: 'مبيعات الموظفين',
+          tableHeaders: ['الموظف', 'المبيعات', 'الأرباح', 'عدد الطلبات'],
+          tableRows: reportData.salesByUser.map(u => [
+            u.userName,
+            `${u.totalSales.toFixed(0)} ج.م`,
+            `${u.totalProfit.toFixed(0)} ج.م`,
+            u.ordersCount.toString(),
+          ]),
+        },
+      ],
+    }, settings);
   };
 
   if (loading || !reportData) {

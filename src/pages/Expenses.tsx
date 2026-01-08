@@ -47,6 +47,8 @@ import {
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { db, Expense, Order, Settings } from '@/lib/database';
+import { generatePDFReport } from '@/lib/pdfReport';
 import {
   PieChart as RechartsPie,
   Pie,
@@ -60,7 +62,6 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import { db, Expense, Order } from '@/lib/database';
 import { cn } from '@/lib/utils';
 
 const categoryConfig: Record<Expense['category'], { label: string; color: string }> = {
@@ -89,10 +90,22 @@ const Expenses = () => {
     notes: '',
   });
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [settings, setSettings] = useState<Settings | null>(null);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   useEffect(() => {
     loadData();
   }, [dateRange]);
+
+  const loadSettings = async () => {
+    const settingsData = await db.settings.toArray();
+    if (settingsData.length > 0) {
+      setSettings(settingsData[0]);
+    }
+  };
 
   const loadData = async () => {
     const expensesData = await db.expenses
@@ -163,88 +176,40 @@ const Expenses = () => {
   };
 
   const handleExportReport = () => {
-    const reportHtml = `
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-  <meta charset="UTF-8">
-  <title>تقرير المصروفات والإيرادات</title>
-  <style>
-    body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 40px; background: #f5f5f5; }
-    .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-    h1 { color: #1a1a1a; border-bottom: 3px solid #3b82f6; padding-bottom: 15px; }
-    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 30px 0; }
-    .summary-card { background: linear-gradient(135deg, #f8fafc, #e2e8f0); padding: 20px; border-radius: 10px; text-align: center; }
-    .summary-card.revenue { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
-    .summary-card.expense { background: linear-gradient(135deg, #fee2e2, #fecaca); }
-    .summary-card.profit { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
-    .summary-card h3 { margin: 0; font-size: 14px; color: #64748b; }
-    .summary-card p { margin: 10px 0 0; font-size: 24px; font-weight: bold; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { padding: 12px; text-align: right; border-bottom: 1px solid #e2e8f0; }
-    th { background: #f8fafc; font-weight: 600; }
-    .net-profit { font-size: 28px; font-weight: bold; text-align: center; padding: 30px; margin-top: 30px; border-radius: 10px; }
-    .net-profit.positive { background: #dcfce7; color: #166534; }
-    .net-profit.negative { background: #fee2e2; color: #dc2626; }
-    @media print { body { background: white; } .container { box-shadow: none; } }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>📊 تقرير المصروفات والإيرادات</h1>
-    <p>الفترة: ${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}</p>
-    
-    <div class="summary">
-      <div class="summary-card revenue">
-        <h3>إجمالي الإيرادات</h3>
-        <p>${totalRevenue.toFixed(2)} ج.م</p>
-      </div>
-      <div class="summary-card expense">
-        <h3>إجمالي المصروفات</h3>
-        <p>${totalExpenses.toFixed(2)} ج.م</p>
-      </div>
-      <div class="summary-card">
-        <h3>تكلفة البضاعة</h3>
-        <p>${totalCost.toFixed(2)} ج.م</p>
-      </div>
-    </div>
-
-    <h2>تفاصيل المصروفات</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>التاريخ</th>
-          <th>الفئة</th>
-          <th>الوصف</th>
-          <th>المبلغ</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${expenses.map(e => `
-          <tr>
-            <td>${format(new Date(e.date), 'dd/MM/yyyy')}</td>
-            <td>${categoryConfig[e.category].label}</td>
-            <td>${e.description}</td>
-            <td>${e.amount.toFixed(2)} ج.م</td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-
-    <div class="net-profit ${netProfit >= 0 ? 'positive' : 'negative'}">
-      <p>صافي الربح: ${netProfit.toFixed(2)} ج.م</p>
-    </div>
-  </div>
-  <script>window.onload = function() { window.print(); };</script>
-</body>
-</html>
-    `;
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(reportHtml);
-      printWindow.document.close();
-    }
+    generatePDFReport({
+      title: 'تقرير المصروفات والإيرادات',
+      subtitle: `الفترة: ${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`,
+      data: [
+        {
+          type: 'stats',
+          title: 'ملخص مالي',
+          stats: [
+            { label: 'إجمالي الإيرادات', value: `${totalRevenue.toFixed(0)} ج.م`, color: '#10b981' },
+            { label: 'إجمالي المصروفات', value: `${totalExpenses.toFixed(0)} ج.م`, color: '#ef4444' },
+            { label: 'تكلفة البضاعة', value: `${totalCost.toFixed(0)} ج.م`, color: '#f59e0b' },
+            { label: 'صافي الربح', value: `${netProfit.toFixed(0)} ج.م`, color: netProfit >= 0 ? '#10b981' : '#ef4444' },
+          ],
+        },
+        {
+          type: 'table',
+          title: 'تفاصيل المصروفات',
+          tableHeaders: ['التاريخ', 'الفئة', 'الوصف', 'المبلغ'],
+          tableRows: expenses.map(e => [
+            format(new Date(e.date), 'dd/MM/yyyy'),
+            categoryConfig[e.category].label,
+            e.description,
+            `${e.amount.toFixed(0)} ج.م`,
+          ]),
+        },
+        {
+          type: 'text',
+          title: 'الخلاصة',
+          text: netProfit >= 0 
+            ? `تحقق ربح صافي قدره ${netProfit.toFixed(0)} ج.م خلال هذه الفترة.`
+            : `هناك خسارة قدرها ${Math.abs(netProfit).toFixed(0)} ج.م خلال هذه الفترة. يُنصح بمراجعة المصروفات.`,
+        },
+      ],
+    }, settings);
   };
 
   return (

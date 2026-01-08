@@ -8,8 +8,10 @@ import {
   BarChart3,
   Package,
   AlertTriangle,
+  FileText,
 } from 'lucide-react';
-import { db, RawMaterial, ProductIngredient, Order } from '@/lib/database';
+import { db, RawMaterial, ProductIngredient, Order, Settings } from '@/lib/database';
+import { generatePDFReport } from '@/lib/pdfReport';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -66,10 +68,22 @@ export default function MaterialsReport() {
   const [dailyConsumption, setDailyConsumption] = useState<DailyConsumption[]>([]);
   const [dateRange, setDateRange] = useState<'week' | 'month'>('week');
   const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<Settings | null>(null);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   useEffect(() => {
     loadData();
   }, [dateRange]);
+
+  const loadSettings = async () => {
+    const settingsData = await db.settings.toArray();
+    if (settingsData.length > 0) {
+      setSettings(settingsData[0]);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -190,170 +204,39 @@ export default function MaterialsReport() {
   }));
 
   const exportReport = () => {
-    const reportHtml = `
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-  <meta charset="UTF-8">
-  <title>تقرير استهلاك المواد الخام - ${dateRange === 'week' ? 'الأسبوع' : 'الشهر'}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-      background: #f5f5f5;
-      padding: 40px;
-      color: #333;
-    }
-    .report-container {
-      max-width: 900px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-      overflow: hidden;
-    }
-    .header {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      color: white;
-      padding: 40px;
-      text-align: center;
-    }
-    .header h1 { font-size: 32px; margin-bottom: 10px; }
-    .header p { opacity: 0.9; font-size: 16px; }
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      padding: 30px;
-      background: #f8f9fa;
-    }
-    .stat-card {
-      background: white;
-      padding: 25px;
-      border-radius: 16px;
-      text-align: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-    }
-    .stat-value {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-    .stat-label { color: #666; font-size: 14px; }
-    .stat-card:nth-child(1) .stat-value { color: #10b981; }
-    .stat-card:nth-child(2) .stat-value { color: #3b82f6; }
-    .stat-card:nth-child(3) .stat-value { color: #f59e0b; }
-    .section { padding: 30px; border-top: 1px solid #eee; }
-    .section-title {
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 20px;
-      color: #333;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .section-title::before {
-      content: '';
-      width: 4px;
-      height: 24px;
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      border-radius: 2px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-    }
-    th, td {
-      padding: 15px;
-      text-align: right;
-      border-bottom: 1px solid #eee;
-    }
-    th {
-      background: #f8f9fa;
-      font-weight: 600;
-      color: #555;
-    }
-    tr:hover { background: #f8f9fa; }
-    .low-stock { color: #dc2626; font-weight: bold; }
-    .footer {
-      background: #f8f9fa;
-      padding: 20px 40px;
-      text-align: center;
-      color: #666;
-      font-size: 12px;
-    }
-    @media print {
-      body { background: white; padding: 0; }
-      .report-container { box-shadow: none; }
-    }
-  </style>
-</head>
-<body>
-  <div class="report-container">
-    <div class="header">
-      <h1>📦 تقرير استهلاك المواد الخام</h1>
-      <p>${dateRange === 'week' ? 'آخر أسبوع' : 'هذا الشهر'} - ${new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-    </div>
-    
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-value">${totalConsumptionCost.toFixed(0)}</div>
-        <div class="stat-label">إجمالي تكلفة الاستهلاك (ج.م)</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${consumptionData.length}</div>
-        <div class="stat-label">عدد المواد المستهلكة</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${lowStockMaterials.length}</div>
-        <div class="stat-label">مواد منخفضة المخزون</div>
-      </div>
-    </div>
-    
-    <div class="section">
-      <div class="section-title">تفاصيل الاستهلاك</div>
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>المادة الخام</th>
-            <th>الكمية المستهلكة</th>
-            <th>التكلفة</th>
-            <th>المخزون الحالي</th>
-            <th>الحالة</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${consumptionData.map((item, index) => `
-            <tr>
-              <td>${index + 1}</td>
-              <td><strong>${item.materialName}</strong></td>
-              <td>${item.totalConsumed.toFixed(2)} ${item.unit}</td>
-              <td>${item.totalCost.toFixed(0)} ج.م</td>
-              <td>${item.currentStock} ${item.unit}</td>
-              <td class="${item.currentStock <= item.minAlert ? 'low-stock' : ''}">${item.currentStock <= item.minAlert ? '⚠️ منخفض' : '✅ متوفر'}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-    
-    <div class="footer">
-      تم إنشاء هذا التقرير تلقائياً بتاريخ ${new Date().toLocaleString('ar-EG')}
-    </div>
-  </div>
-</body>
-</html>
-    `;
-    
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(reportHtml);
-      printWindow.document.close();
-      printWindow.print();
-    }
+    generatePDFReport({
+      title: 'تقرير استهلاك المواد الخام',
+      subtitle: dateRange === 'week' ? 'آخر أسبوع' : 'هذا الشهر',
+      data: [
+        {
+          type: 'stats',
+          title: 'ملخص الاستهلاك',
+          stats: [
+            { label: 'إجمالي التكلفة', value: `${totalConsumptionCost.toFixed(0)} ج.م`, color: '#10b981' },
+            { label: 'المواد المستهلكة', value: consumptionData.length.toString(), color: '#3b82f6' },
+            { label: 'مواد منخفضة', value: lowStockMaterials.length.toString(), color: '#f59e0b' },
+          ],
+        },
+        {
+          type: 'table',
+          title: 'تفاصيل الاستهلاك',
+          tableHeaders: ['#', 'المادة الخام', 'الكمية المستهلكة', 'التكلفة', 'المخزون الحالي', 'الحالة'],
+          tableRows: consumptionData.map((item, i) => [
+            (i + 1).toString(),
+            item.materialName,
+            `${item.totalConsumed.toFixed(2)} ${item.unit}`,
+            `${item.totalCost.toFixed(0)} ج.م`,
+            `${item.currentStock} ${item.unit}`,
+            item.currentStock <= item.minAlert ? '⚠️ منخفض' : '✅ متوفر',
+          ]),
+        },
+        ...(lowStockMaterials.length > 0 ? [{
+          type: 'text' as const,
+          title: 'تنبيهات المخزون',
+          text: `المواد التالية بحاجة لإعادة الطلب: ${lowStockMaterials.map(m => m.materialName).join('، ')}`,
+        }] : []),
+      ],
+    }, settings);
   };
 
   if (loading) {
