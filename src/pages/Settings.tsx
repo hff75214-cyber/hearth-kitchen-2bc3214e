@@ -14,8 +14,11 @@ import {
   Tag,
   Sun,
   Moon,
+  Monitor,
+  ExternalLink,
 } from 'lucide-react';
-import { db, Settings as SettingsType, Category, exportDatabase, importDatabase } from '@/lib/database';
+import { db, Settings as SettingsType, Category } from '@/lib/database';
+import { exportDatabase, importDatabase, downloadBackup, validateBackup } from '@/lib/databaseExport';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -109,15 +112,9 @@ export default function Settings() {
 
   const handleExport = async () => {
     try {
-      const data = await exportDatabase();
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `restaurant-backup-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast({ title: 'تم التصدير', description: 'تم تصدير النسخة الاحتياطية بنجاح' });
+      const backup = await exportDatabase();
+      downloadBackup(backup);
+      toast({ title: 'تم التصدير', description: 'تم تصدير النسخة الاحتياطية الكاملة بنجاح' });
     } catch (error) {
       toast({ title: 'خطأ', description: 'حدث خطأ أثناء التصدير', variant: 'destructive' });
     }
@@ -129,9 +126,21 @@ export default function Settings() {
 
     try {
       const text = await file.text();
-      await importDatabase(text);
-      toast({ title: 'تم الاستيراد', description: 'تم استيراد النسخة الاحتياطية بنجاح' });
+      const data = JSON.parse(text);
+      
+      if (!validateBackup(data)) {
+        throw new Error('ملف غير صالح');
+      }
+      
+      if (!confirm('سيتم استبدال جميع البيانات الحالية. هل أنت متأكد؟')) {
+        return;
+      }
+      
+      await importDatabase(data);
+      toast({ title: 'تم الاستيراد', description: 'تم استيراد النسخة الاحتياطية الكاملة بنجاح' });
       loadData();
+      // Reload the page to apply changes
+      setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
       toast({ title: 'خطأ', description: 'حدث خطأ أثناء الاستيراد. تأكد من صحة الملف', variant: 'destructive' });
     }
@@ -139,6 +148,10 @@ export default function Settings() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const openCustomerDisplay = () => {
+    window.open('/customer-display', '_blank', 'width=800,height=600');
   };
 
   const handleClearData = async () => {
@@ -341,23 +354,29 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="text-foreground flex items-center gap-2">
                 <Download className="w-5 h-5 text-primary" />
-                النسخ الاحتياطي
+                النسخ الاحتياطي والنقل
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 rounded-lg bg-secondary/50 space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  قم بتصدير نسخة احتياطية من جميع بيانات النظام (المنتجات، الطلبات، الطاولات، الإعدادات)
+              <div className="p-4 rounded-lg bg-success/10 border border-success/30 space-y-3">
+                <p className="text-sm text-foreground font-medium">
+                  تصدير جميع البيانات كملف JSON
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  يشمل: المنتجات، الطلبات، العملاء، الموظفين، المخزون، المواد الخام، العروض، وجميع الإعدادات
                 </p>
                 <Button onClick={handleExport} className="w-full bg-success text-success-foreground hover:bg-success/90">
                   <Download className="w-4 h-4 ml-2" />
-                  تصدير نسخة احتياطية
+                  تصدير نسخة احتياطية كاملة
                 </Button>
               </div>
 
-              <div className="p-4 rounded-lg bg-secondary/50 space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  استيراد نسخة احتياطية سابقة. سيتم استبدال جميع البيانات الحالية.
+              <div className="p-4 rounded-lg bg-info/10 border border-info/30 space-y-3">
+                <p className="text-sm text-foreground font-medium">
+                  استيراد نسخة احتياطية
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  استيراد ملف JSON من جهاز آخر أو نسخة سابقة. سيتم استبدال جميع البيانات.
                 </p>
                 <input
                   ref={fileInputRef}
@@ -369,7 +388,7 @@ export default function Settings() {
                 <Button
                   onClick={() => fileInputRef.current?.click()}
                   variant="outline"
-                  className="w-full border-border"
+                  className="w-full border-info text-info hover:bg-info/10"
                 >
                   <Upload className="w-4 h-4 ml-2" />
                   استيراد نسخة احتياطية
@@ -391,6 +410,35 @@ export default function Settings() {
                 >
                   <Trash2 className="w-4 h-4 ml-2" />
                   حذف جميع البيانات
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Customer Display */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+          <Card className="glass shadow-card">
+            <CardHeader>
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Monitor className="w-5 h-5 text-primary" />
+                شاشة عرض العملاء
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 rounded-lg bg-primary/10 border border-primary/30 space-y-3">
+                <p className="text-sm text-foreground font-medium">
+                  فتح شاشة عرض للعملاء
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  شاشة منفصلة تعرض تفاصيل الطلب الحالي والإجمالي للعميل. يمكن عرضها على شاشة ثانية.
+                </p>
+                <Button
+                  onClick={openCustomerDisplay}
+                  className="w-full gradient-primary text-primary-foreground"
+                >
+                  <ExternalLink className="w-4 h-4 ml-2" />
+                  فتح شاشة العملاء
                 </Button>
               </div>
             </CardContent>
