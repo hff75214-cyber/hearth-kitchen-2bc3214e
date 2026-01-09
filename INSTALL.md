@@ -2,134 +2,116 @@
 
 ## المتطلبات الأساسية
 - Node.js (الإصدار 18 أو أحدث) - [تحميل](https://nodejs.org/)
-- Git (اختياري)
 
 ---
 
-## الخطوات السريعة (نسخ ولصق الأوامر)
+## ⚠️ مهم جداً - المشكلة الشائعة
 
-### الخطوة 1: فك ضغط المشروع والدخول للمجلد
-```bash
-cd restaurant-pos
+عند فك الضغط، يُنشأ مجلد داخل مجلد بنفس الاسم. **يجب أن تكون في المجلد الذي يحتوي على:**
+- مجلد `src`
+- مجلد `electron`  
+- ملف `package.json`
+
+**إذا رأيت مجلد واحد فقط، ادخل إليه!**
+
+---
+
+## الخطوات الكاملة (نسخ/لصق مباشر)
+
+### 1. الدخول للمجلد الصحيح
+```powershell
+# انتقل للمجلد المفكوك
+cd D:\restaurant-hub-aaf47d97-main
+
+# تحقق من المحتويات
+dir
+
+# إذا رأيت مجلد واحد فقط، ادخل إليه:
+cd restaurant-hub-aaf47d97-main
+
+# تحقق مرة أخرى - يجب أن ترى: src, electron, package.json
+dir
 ```
 
-### الخطوة 2: تثبيت جميع الاعتماديات
-```bash
+### 2. تثبيت الاعتماديات
+```powershell
 npm install
 ```
 
-### الخطوة 3: تثبيت Electron و Electron Builder
-```bash
-npm install --save-dev electron@latest electron-builder@latest
+### 3. تثبيت Electron
+```powershell
+npm install --save-dev electron electron-builder
 ```
 
-### الخطوة 4: إضافة السكربتات في package.json
-افتح ملف `package.json` وأضف هذه الأسطر داخل `"scripts"`:
+### 4. تعديل package.json (إجباري!)
 
-```json
-"electron": "npm run build && electron .",
-"electron:dev": "electron .",
-"electron:build": "npm run build && electron-builder --win",
-"electron:build:portable": "npm run build && electron-builder --win portable"
-```
+افتح `package.json` بـ Notepad وأضف هذا السطر **مباشرة بعد** `"name":`:
 
-**مثال على شكل scripts بعد الإضافة:**
-```json
-"scripts": {
-  "dev": "vite",
-  "build": "vite build",
-  "preview": "vite preview",
-  "electron": "npm run build && electron .",
-  "electron:dev": "electron .",
-  "electron:build": "npm run build && electron-builder --win",
-  "electron:build:portable": "npm run build && electron-builder --win portable"
-}
-```
-
-### الخطوة 5: أضف "main" في package.json
-أضف هذا السطر في بداية package.json (بعد "name" مباشرة):
 ```json
 "main": "electron/main.js",
 ```
 
+**يجب أن يبدو هكذا:**
+```json
+{
+  "name": "vite_react_shadcn_ts",
+  "main": "electron/main.js",
+  "private": true,
+  ...
+}
+```
+
+**احفظ الملف!**
+
+### 5. بناء المشروع
+```powershell
+npm run build
+```
+
+### 6. تشغيل التطبيق
+```powershell
+npx electron .
+```
+
+### 7. إنشاء ملف exe (اختياري)
+```powershell
+npx electron-builder --win
+```
+
 ---
 
-## تشغيل التطبيق
+## 🎯 ملخص سريع
 
-### للتجربة (عرض سريع):
-```bash
+```powershell
+cd D:\restaurant-hub-aaf47d97-main\restaurant-hub-aaf47d97-main
+npm install
+npm install --save-dev electron electron-builder
+# (عدّل package.json وأضف "main": "electron/main.js")
 npm run build
 npx electron .
 ```
 
-### لإنشاء ملف exe قابل للتثبيت:
-```bash
-npm run build
-npx electron-builder --win
-```
+---
 
-### لإنشاء نسخة Portable (بدون تثبيت):
-```bash
-npm run build
-npx electron-builder --win portable
+## ❌ حل الأخطاء الشائعة
+
+### خطأ: Cannot find Electron app / Cannot find module
+**السبب:** أنت في مجلد خاطئ أو لم تضف `"main"` في package.json
+
+**الحل:**
+1. تأكد أن المجلد الحالي يحتوي على `electron/main.js`
+2. تأكد أنك أضفت `"main": "electron/main.js"` في package.json
+3. نفذ `npm run build` قبل `npx electron .`
+
+### خطأ: Module not found
+```powershell
+npm install
 ```
 
 ---
 
 ## موقع ملف التثبيت
-بعد التنفيذ، ستجد الملفات في مجلد `release/`:
-- `Restaurant POS Setup x.x.x.exe` - ملف التثبيت
-- `Restaurant POS x.x.x.exe` - النسخة المحمولة (إن اخترت portable)
-
----
-
-## ملاحظات مهمة
-
-1. **البيانات محفوظة محلياً**: جميع البيانات تُحفظ في IndexedDB على الجهاز
-2. **النسخ الاحتياطي**: استخدم ميزة التصدير من الإعدادات لعمل نسخة احتياطية
-3. **نقل البيانات**: يمكنك نقل ملف JSON الاحتياطي لجهاز آخر واستيراده
-
----
-
-## استكشاف الأخطاء
-
-### خطأ: Cannot find module 'electron'
-```bash
-npm install --save-dev electron@latest
-```
-
-### خطأ: electron-builder not found
-```bash
-npm install --save-dev electron-builder@latest
-```
-
-### خطأ في البناء
-تأكد من:
-1. تثبيت Node.js الإصدار 18+
-2. تنفيذ `npm install` أولاً
-3. تنفيذ `npm run build` قبل electron-builder
-
----
-
-## الأوامر الكاملة (نسخ/لصق مباشر)
-
-```bash
-# 1. الدخول للمجلد
-cd restaurant-pos
-
-# 2. تثبيت كل شيء
-npm install
-npm install --save-dev electron@latest electron-builder@latest
-
-# 3. بناء المشروع
-npm run build
-
-# 4. تشغيل للتجربة
-npx electron .
-
-# 5. إنشاء ملف exe (اختياري)
-npx electron-builder --win
-```
+بعد `npx electron-builder --win`، ستجد الملف في: `release/Restaurant POS Setup.exe`
 
 ---
 
