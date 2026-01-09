@@ -48,7 +48,7 @@ npm install --save-dev electron electron-builder
 افتح `package.json` بـ Notepad وأضف هذا السطر **مباشرة بعد** `"name":`:
 
 ```json
-"main": "electron/main.js",
+"main": "electron/main.cjs",
 ```
 
 **يجب أن يبدو هكذا:**
