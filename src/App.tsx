@@ -164,7 +164,7 @@ const App = () => {
             {/* Customer Display - Public route without layout */}
             <Route path="/customer-display" element={<CustomerDisplay />} />
             
-            {/* Main App Routes */}
+            {/* Main App Routes with Layout */}
             <Route path="/*" element={
               <MainLayout 
                 userName={currentUser.name} 
@@ -172,7 +172,7 @@ const App = () => {
                 userPermissions={userPermissions}
                 onLogout={handleLogout}
               >
-            <Routes>
+                <Routes>
               {/* Default redirect based on role */}
               <Route path="/" element={
                 userPermissions.includes('dashboard') 
@@ -414,11 +414,11 @@ const App = () => {
                 />
               } />
 
-              {/* Catch all - redirect to default path */}
-              <Route path="*" element={<Navigate to={defaultPath} replace />} />
-            </Routes>
-            <ReservationNotifications />
-          </MainLayout>
+                  {/* Catch all - redirect to default path */}
+                  <Route path="*" element={<Navigate to={defaultPath} replace />} />
+                </Routes>
+                <ReservationNotifications />
+              </MainLayout>
             } />
           </Routes>
         </BrowserRouter>
