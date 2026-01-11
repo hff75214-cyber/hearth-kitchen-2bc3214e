@@ -36,6 +36,7 @@ import EmployeePerformance from "./pages/EmployeePerformance";
 import Branches from "./pages/Branches";
 import Suppliers from "./pages/Suppliers";
 import CustomerDisplay from "./pages/CustomerDisplay";
+import Welcome from "./pages/Welcome";
 
 const queryClient = new QueryClient();
 
@@ -103,8 +104,15 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<SystemUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
+    // Check if first visit
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+    if (!hasSeenWelcome) {
+      setShowWelcome(true);
+    }
+    
     // Check if user is already logged in
     const savedUserData = localStorage.getItem('currentUserData');
     if (savedUserData) {
@@ -118,6 +126,11 @@ const App = () => {
     }
     setIsLoading(false);
   }, []);
+
+  const handleWelcomeComplete = () => {
+    localStorage.setItem('hasSeenWelcome', 'true');
+    setShowWelcome(false);
+  };
 
   const handleLogin = (user: SystemUser) => {
     localStorage.setItem('currentUserData', JSON.stringify(user));
@@ -136,6 +149,31 @@ const App = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
+    );
+  }
+
+  // Show welcome page for first-time visitors
+  if (showWelcome) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Welcome onComplete={handleWelcomeComplete} />
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
+  }
+
+  if (!isLoggedIn || !currentUser) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Login onLogin={handleLogin} />
+        </TooltipProvider>
+      </QueryClientProvider>
     );
   }
 
