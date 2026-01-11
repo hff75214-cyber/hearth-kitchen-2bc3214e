@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
+import { InstallAppButton } from '@/components/InstallAppButton';
 
 export default function Settings() {
   const [settings, setSettings] = useState<SettingsType>({
@@ -462,8 +463,13 @@ export default function Settings() {
           </Card>
         </motion.div>
 
-        {/* Customer Display */}
+        {/* Install App */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+          <InstallAppButton />
+        </motion.div>
+
+        {/* Customer Display */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card className="glass shadow-card">
             <CardHeader>
               <CardTitle className="text-foreground flex items-center gap-2">
