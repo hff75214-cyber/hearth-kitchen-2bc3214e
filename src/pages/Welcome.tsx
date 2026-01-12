@@ -174,114 +174,180 @@ export default function Welcome({ onComplete }: WelcomeProps) {
         </motion.div>
       )
     },
-    // Step 3: Install
+    // Step 3: Install - Enhanced Professional Card
     {
       content: (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-8"
+          className="flex flex-col items-center justify-center space-y-8"
         >
-          <div className="space-y-4">
-            <h2 className="text-3xl font-bold text-foreground">تثبيت التطبيق</h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              قم بتثبيت النظام كتطبيق على جهازك للوصول السريع والعمل بدون إنترنت
-            </p>
-          </div>
+          {/* Main Install Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="w-full max-w-2xl"
+          >
+            <Card className="relative overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-card via-card to-primary/5 shadow-2xl">
+              {/* Decorative Background */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl" />
+                <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl" />
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-            {/* Desktop */}
-            <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50 space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mx-auto">
-                <Monitor className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg text-foreground">الكمبيوتر</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  يعمل على Windows, Mac, Linux
-                </p>
-              </div>
-              <ul className="text-sm text-muted-foreground space-y-2 text-right">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-success" />
-                  <span>شاشة كاملة بدون متصفح</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-success" />
-                  <span>اختصار على سطح المكتب</span>
-                </li>
-              </ul>
-            </Card>
-
-            {/* Mobile */}
-            <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50 space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mx-auto">
-                <Smartphone className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg text-foreground">الهاتف المحمول</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  يعمل على Android و iOS
-                </p>
-              </div>
-              <ul className="text-sm text-muted-foreground space-y-2 text-right">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-success" />
-                  <span>أيقونة على الشاشة الرئيسية</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-success" />
-                  <span>تجربة تطبيق كاملة</span>
-                </li>
-              </ul>
-            </Card>
-          </div>
-
-          {/* Install Button */}
-          <div className="pt-4 space-y-4">
-            {isInstalled ? (
-              <div className="flex items-center justify-center gap-3 text-success">
-                <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
-                  <Check className="w-5 h-5" />
+              <div className="relative p-8 space-y-6">
+                {/* Header */}
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center">
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", delay: 0.3 }}
+                      className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg shadow-primary/30"
+                    >
+                      <Download className="w-10 h-10 text-primary-foreground" />
+                    </motion.div>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+                      تثبيت النظام كتطبيق
+                    </h2>
+                    <p className="text-muted-foreground mt-2 max-w-md mx-auto">
+                      احصل على تجربة تطبيق كاملة مع إمكانية العمل بدون إنترنت
+                    </p>
+                  </div>
                 </div>
-                <span className="font-semibold text-lg">تم تثبيت التطبيق بنجاح!</span>
+
+                {/* Features Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-background/50 border border-border/50">
+                    <Monitor className="w-6 h-6 text-primary" />
+                    <span className="text-xs font-medium text-foreground">ديسكتوب</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-background/50 border border-border/50">
+                    <Smartphone className="w-6 h-6 text-primary" />
+                    <span className="text-xs font-medium text-foreground">موبايل</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-background/50 border border-border/50">
+                    <WifiOff className="w-6 h-6 text-success" />
+                    <span className="text-xs font-medium text-foreground">أوفلاين</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-background/50 border border-border/50">
+                    <Database className="w-6 h-6 text-info" />
+                    <span className="text-xs font-medium text-foreground">بيانات محلية</span>
+                  </div>
+                </div>
+
+                {/* Benefits List */}
+                <div className="bg-background/50 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-4 h-4 text-success" />
+                    </div>
+                    <span className="text-sm text-foreground">يفتح كتطبيق مستقل بدون متصفح</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-4 h-4 text-success" />
+                    </div>
+                    <span className="text-sm text-foreground">اختصار على سطح المكتب أو الشاشة الرئيسية</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-4 h-4 text-success" />
+                    </div>
+                    <span className="text-sm text-foreground">يعمل بدون إنترنت مع حفظ البيانات محلياً</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-4 h-4 text-success" />
+                    </div>
+                    <span className="text-sm text-foreground">تحديثات تلقائية في الخلفية</span>
+                  </div>
+                </div>
+
+                {/* Install Button Section */}
+                <div className="space-y-4 pt-2">
+                  {isInstalled ? (
+                    <motion.div 
+                      initial={{ scale: 0.9 }}
+                      animate={{ scale: 1 }}
+                      className="flex flex-col items-center gap-3 p-6 rounded-xl bg-success/10 border border-success/30"
+                    >
+                      <div className="w-14 h-14 rounded-full bg-success/20 flex items-center justify-center">
+                        <Check className="w-7 h-7 text-success" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-bold text-lg text-success">تم تثبيت التطبيق بنجاح!</p>
+                        <p className="text-sm text-muted-foreground mt-1">يمكنك الآن فتحه من سطح المكتب</p>
+                      </div>
+                    </motion.div>
+                  ) : isInstallable ? (
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Button
+                        size="lg"
+                        onClick={handleInstall}
+                        disabled={isInstalling}
+                        className="w-full h-16 text-lg font-bold gradient-primary text-primary-foreground rounded-xl shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all"
+                      >
+                        {isInstalling ? (
+                          <>
+                            <div className="animate-spin w-6 h-6 border-3 border-primary-foreground border-t-transparent rounded-full ml-3" />
+                            <span>جاري التثبيت...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-6 h-6 ml-3" />
+                            <span>تثبيت التطبيق الآن</span>
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
+                  ) : isIOS ? (
+                    <div className="bg-gradient-to-br from-secondary to-secondary/50 rounded-xl p-5 text-right space-y-3">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Smartphone className="w-5 h-5 text-primary" />
+                        </div>
+                        <span className="font-semibold text-foreground">التثبيت على iPhone/iPad</span>
+                      </div>
+                      <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+                        <li>اضغط على زر المشاركة <span className="inline-block">⬆️</span></li>
+                        <li>اختر "إضافة إلى الشاشة الرئيسية"</li>
+                        <li>اضغط "إضافة" للتأكيد</li>
+                      </ol>
+                    </div>
+                  ) : (
+                    <div className="bg-gradient-to-br from-secondary to-secondary/50 rounded-xl p-5 space-y-3">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Monitor className="w-5 h-5 text-primary" />
+                        </div>
+                        <span className="font-semibold text-foreground">طريقة التثبيت</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        افتح قائمة المتصفح (⋮) ثم اختر <strong>"تثبيت التطبيق"</strong> أو <strong>"إضافة إلى الشاشة الرئيسية"</strong>
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-            ) : isInstallable ? (
-              <Button
-                size="lg"
-                onClick={handleInstall}
-                disabled={isInstalling}
-                className="gradient-primary text-primary-foreground px-8 py-6 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all"
-              >
-                {isInstalling ? (
-                  <>
-                    <div className="animate-spin w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full ml-2" />
-                    جاري التثبيت...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-5 h-5 ml-2" />
-                    تثبيت التطبيق الآن
-                  </>
-                )}
-              </Button>
-            ) : isIOS ? (
-              <div className="bg-secondary/50 rounded-xl p-4 max-w-md mx-auto text-right">
-                <p className="text-sm text-foreground font-medium mb-2">للتثبيت على iPhone/iPad:</p>
-                <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                  <li>اضغط على زر المشاركة <span className="inline-block rotate-90">⎋</span></li>
-                  <li>اختر "إضافة إلى الشاشة الرئيسية"</li>
-                  <li>اضغط "إضافة"</li>
-                </ol>
-              </div>
-            ) : (
-              <div className="bg-secondary/50 rounded-xl p-4 max-w-md mx-auto">
-                <p className="text-sm text-muted-foreground">
-                  للتثبيت، افتح قائمة المتصفح (⋮) واختر "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية"
-                </p>
-              </div>
-            )}
-          </div>
+            </Card>
+          </motion.div>
+
+          {/* Skip Option */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-sm text-muted-foreground"
+          >
+            يمكنك التثبيت لاحقاً من صفحة الإعدادات
+          </motion.p>
         </motion.div>
       )
     }
