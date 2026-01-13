@@ -10,8 +10,14 @@ import {
   X,
   Trash2,
   Check,
+  Volume2,
+  VolumeX,
+  BellRing,
+  Package,
+  ChefHat,
+  Calendar,
 } from 'lucide-react';
-import { db, Notification, checkTableTimes, checkLowStock } from '@/lib/database';
+import { db, Notification as DbNotification, checkTableTimes, checkLowStock, checkRawMaterialsStock, addNotification } from '@/lib/database';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -20,11 +26,82 @@ import {
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+
+// طلب إذن الإشعارات
+export async function requestNotificationPermission() {
+  if ('Notification' in window && window.Notification.permission === 'default') {
+    const permission = await window.Notification.requestPermission();
+    return permission === 'granted';
+  }
+  return 'Notification' in window && window.Notification.permission === 'granted';
+}
+
+// إرسال إشعار Push
+export async function sendPushNotification(
+  title: string, 
+  message: string, 
+  type: DbNotification['type'] = 'system',
+  relatedId?: number
+) {
+  // إضافة للقاعدة
+  await addNotification({
+    type,
+    title,
+    message,
+    relatedId,
+  });
+
+  // إرسال إشعار Push إذا كان متاحاً
+  if ('Notification' in window && window.Notification.permission === 'granted') {
+    try {
+      new window.Notification(title, {
+        body: message,
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-192x192.png',
+        tag: type,
+      });
+    } catch (error) {
+      console.log('Could not send push notification');
+    }
+  }
+}
+
+// إشعار طلب جديد
+export async function notifyNewOrder(orderNumber: string, total: number) {
+  await sendPushNotification(
+    'طلب جديد! 🛒',
+    `تم استلام طلب جديد رقم ${orderNumber} بقيمة ${total} ج.م`,
+    'new_order'
+  );
+}
+
+// إشعار طلب جاهز
+export async function notifyOrderReady(orderNumber: string, tableName?: string) {
+  await sendPushNotification(
+    'طلب جاهز! ✅',
+    tableName 
+      ? `الطلب رقم ${orderNumber} جاهز للتقديم - ${tableName}`
+      : `الطلب رقم ${orderNumber} جاهز للاستلام`,
+    'order_ready'
+  );
+}
+
+// إشعار حجز قادم
+export async function notifyUpcomingReservation(customerName: string, tableName: string, time: string) {
+  await sendPushNotification(
+    'حجز قادم! 📅',
+    `حجز ${customerName} على ${tableName} الساعة ${time}`,
+    'system'
+  );
+}
 
 export function NotificationSystem() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<DbNotification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [lastCount, setLastCount] = useState(0);
 
   const loadNotifications = useCallback(async () => {
     const allNotifications = await db.notifications
@@ -33,22 +110,61 @@ export function NotificationSystem() {
       .limit(50)
       .toArray();
     setNotifications(allNotifications);
-    setUnreadCount(allNotifications.filter(n => !n.isRead).length);
+    const newUnreadCount = allNotifications.filter(n => !n.isRead).length;
+    
+    // تشغيل صوت عند وصول إشعار جديد
+    if (newUnreadCount > unreadCount && lastCount !== 0 && soundEnabled) {
+      playNotificationSound();
+    }
+    
+    setUnreadCount(newUnreadCount);
+    setLastCount(newUnreadCount);
+  }, [unreadCount, lastCount, soundEnabled]);
+
+  // تشغيل صوت الإشعار
+  const playNotificationSound = useCallback(() => {
+    if ('AudioContext' in window || 'webkitAudioContext' in window) {
+      try {
+        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const audioContext = new AudioContextClass();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
+      } catch (error) {
+        console.log('Could not play notification sound');
+      }
+    }
   }, []);
 
   useEffect(() => {
+    // طلب إذن الإشعارات
+    requestNotificationPermission();
+    
     loadNotifications();
 
     // Check for notifications every 30 seconds
     const interval = setInterval(async () => {
       await checkTableTimes();
       await checkLowStock();
+      await checkRawMaterialsStock();
       await loadNotifications();
     }, 30000);
 
     // Initial check
     checkTableTimes();
     checkLowStock();
+    checkRawMaterialsStock();
 
     return () => clearInterval(interval);
   }, [loadNotifications]);
@@ -78,7 +194,7 @@ export function NotificationSystem() {
     toast({ title: 'تم', description: 'تم حذف جميع الإشعارات' });
   };
 
-  const handleTableAction = async (notification: Notification, action: 'free' | 'extend') => {
+  const handleTableAction = async (notification: DbNotification, action: 'free' | 'extend') => {
     if (notification.relatedId) {
       if (action === 'free') {
         await db.restaurantTables.update(notification.relatedId, {
@@ -96,20 +212,39 @@ export function NotificationSystem() {
     }
   };
 
-  const getIcon = (type: Notification['type']) => {
+  const getIcon = (type: DbNotification['type']) => {
     switch (type) {
       case 'low_stock':
-        return <AlertTriangle className="w-5 h-5 text-warning" />;
+        return <Package className="w-5 h-5 text-warning" />;
+      case 'raw_material_low':
+        return <AlertTriangle className="w-5 h-5 text-destructive" />;
       case 'table_time':
         return <Clock className="w-5 h-5 text-info" />;
       case 'new_order':
-        return <ShoppingCart className="w-5 h-5 text-primary" />;
+        return <ShoppingCart className="w-5 h-5 text-success" />;
       case 'order_ready':
-        return <CheckCircle className="w-5 h-5 text-success" />;
+        return <ChefHat className="w-5 h-5 text-primary" />;
       case 'system':
         return <Settings className="w-5 h-5 text-muted-foreground" />;
       default:
         return <Bell className="w-5 h-5 text-muted-foreground" />;
+    }
+  };
+
+  const getIconBg = (type: DbNotification['type']) => {
+    switch (type) {
+      case 'low_stock':
+        return 'bg-warning/10 border-warning/30';
+      case 'raw_material_low':
+        return 'bg-destructive/10 border-destructive/30';
+      case 'table_time':
+        return 'bg-info/10 border-info/30';
+      case 'new_order':
+        return 'bg-success/10 border-success/30';
+      case 'order_ready':
+        return 'bg-primary/10 border-primary/30';
+      default:
+        return 'bg-secondary border-border';
     }
   };
 
@@ -151,36 +286,61 @@ export function NotificationSystem() {
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="w-96 p-0 bg-card border-border shadow-card"
+        className="w-96 p-0 bg-card border-border shadow-xl"
         sideOffset={8}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h3 className="font-bold text-foreground">الإشعارات</h3>
-          <div className="flex gap-1">
+        <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
+          <div className="flex items-center gap-2">
+            <BellRing className="w-5 h-5 text-primary" />
+            <h3 className="font-bold text-foreground">الإشعارات</h3>
             {unreadCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={markAllAsRead}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                <Check className="w-3 h-3 ml-1" />
-                قراءة الكل
-              </Button>
-            )}
-            {notifications.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearAllNotifications}
-                className="text-xs text-destructive hover:text-destructive"
-              >
-                <Trash2 className="w-3 h-3 ml-1" />
-                حذف الكل
-              </Button>
+              <Badge variant="secondary" className="text-xs">
+                {unreadCount} جديد
+              </Badge>
             )}
           </div>
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              title={soundEnabled ? 'كتم الصوت' : 'تفعيل الصوت'}
+            >
+              {soundEnabled ? (
+                <Volume2 className="w-4 h-4" />
+              ) : (
+                <VolumeX className="w-4 h-4 text-muted-foreground" />
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between px-4 py-2 border-b border-border/50">
+          {unreadCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={markAllAsRead}
+              className="text-xs text-muted-foreground hover:text-foreground h-7"
+            >
+              <Check className="w-3 h-3 ml-1" />
+              قراءة الكل
+            </Button>
+          )}
+          {notifications.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearAllNotifications}
+              className="text-xs text-destructive hover:text-destructive h-7 mr-auto"
+            >
+              <Trash2 className="w-3 h-3 ml-1" />
+              حذف الكل
+            </Button>
+          )}
         </div>
 
         {/* Notifications List */}
@@ -191,7 +351,7 @@ export function NotificationSystem() {
               <p className="text-muted-foreground">لا توجد إشعارات</p>
             </div>
           ) : (
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border/50">
               {notifications.map((notification) => (
                 <motion.div
                   key={notification.id}
@@ -202,7 +362,7 @@ export function NotificationSystem() {
                   }`}
                 >
                   <div className="flex gap-3">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-xl border flex items-center justify-center ${getIconBg(notification.type)}`}>
                       {getIcon(notification.type)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -210,12 +370,24 @@ export function NotificationSystem() {
                         <h4 className={`font-medium text-sm ${!notification.isRead ? 'text-foreground' : 'text-muted-foreground'}`}>
                           {notification.title}
                         </h4>
-                        <button
-                          onClick={() => deleteNotification(notification.id!)}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          {!notification.isRead && (
+                            <button
+                              onClick={() => markAsRead(notification.id!)}
+                              className="text-muted-foreground hover:text-success p-1"
+                              title="تعليم كمقروء"
+                            >
+                              <Check className="w-3 h-3" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => deleteNotification(notification.id!)}
+                            className="text-muted-foreground hover:text-destructive p-1"
+                            title="حذف"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                         {notification.message}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChefHat, 
@@ -51,6 +51,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { usePWA } from '@/hooks/usePWA';
 import { Badge } from '@/components/ui/badge';
+import { seedDemoData } from '@/lib/sampleData';
+import developerPhoto from '@/assets/developer-photo.png';
 
 interface WelcomeProps {
   onComplete: () => void;
@@ -126,6 +128,21 @@ export default function Welcome({ onComplete }: WelcomeProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const { isInstallable, isInstalled, isIOS, installApp } = usePWA();
   const [isInstalling, setIsInstalling] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
+
+  // تحميل البيانات التجريبية عند بدء التطبيق
+  useEffect(() => {
+    const loadSampleData = async () => {
+      try {
+        await seedDemoData();
+        setDataLoaded(true);
+      } catch (error) {
+        console.log('Sample data already exists or error:', error);
+        setDataLoaded(true);
+      }
+    };
+    loadSampleData();
+  }, []);
 
   const handleInstall = async () => {
     setIsInstalling(true);
@@ -165,9 +182,11 @@ export default function Welcome({ onComplete }: WelcomeProps) {
                   className="relative inline-block"
                 >
                   <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-primary via-primary/80 to-amber-600 p-1 shadow-2xl shadow-primary/30">
-                    <div className="w-full h-full rounded-full bg-gradient-to-br from-card to-secondary flex items-center justify-center">
-                      <Code2 className="w-16 h-16 md:w-20 md:h-20 text-primary" />
-                    </div>
+                    <img 
+                      src={developerPhoto} 
+                      alt="محمد أيمن طلب" 
+                      className="w-full h-full rounded-full object-cover object-top"
+                    />
                   </div>
                   <motion.div
                     initial={{ scale: 0 }}
