@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { Sidebar } from './Sidebar';
-import { NotificationSystem } from '../NotificationSystem';
+import { NotificationSystem, requestNotificationPermission } from '../NotificationSystem';
 import { initializeDefaultData, PagePermission, UserRole, roleNames } from '@/lib/database';
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Shield } from 'lucide-react';
@@ -19,6 +19,8 @@ export function MainLayout({ children, userName, userRole, userPermissions = [],
 
   useEffect(() => {
     initializeDefaultData();
+    // طلب إذن الإشعارات عند تحميل التطبيق
+    requestNotificationPermission();
   }, []);
 
   return (
