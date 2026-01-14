@@ -1,5 +1,53 @@
 import { Order, Settings } from './database';
 
+// Generate barcode SVG for order number
+const generateBarcodeSVG = (orderNumber: string): string => {
+  const data = orderNumber.replace(/[^0-9]/g, '').padStart(12, '0').slice(-12);
+  const bars: string[] = [];
+  let x = 0;
+  const barWidth = 2;
+  const height = 40;
+  
+  // Simple Code128-like representation
+  const patterns: { [key: string]: string } = {
+    '0': '11011001100', '1': '11001101100', '2': '11001100110', '3': '10010011000',
+    '4': '10010001100', '5': '10001001100', '6': '10011001000', '7': '10011000100',
+    '8': '10001100100', '9': '11001001000'
+  };
+  
+  // Start pattern
+  bars.push(`<rect x="${x}" y="0" width="${barWidth * 2}" height="${height}" fill="#000"/>`);
+  x += barWidth * 3;
+  bars.push(`<rect x="${x}" y="0" width="${barWidth}" height="${height}" fill="#000"/>`);
+  x += barWidth * 2;
+  
+  // Data bars
+  for (const char of data) {
+    const pattern = patterns[char] || patterns['0'];
+    for (let i = 0; i < pattern.length; i++) {
+      if (pattern[i] === '1') {
+        bars.push(`<rect x="${x}" y="0" width="${barWidth}" height="${height}" fill="#000"/>`);
+      }
+      x += barWidth;
+    }
+    x += barWidth;
+  }
+  
+  // End pattern
+  bars.push(`<rect x="${x}" y="0" width="${barWidth}" height="${height}" fill="#000"/>`);
+  x += barWidth * 2;
+  bars.push(`<rect x="${x}" y="0" width="${barWidth * 2}" height="${height}" fill="#000"/>`);
+  
+  const totalWidth = x + barWidth * 2;
+  
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="${height + 20}" viewBox="0 0 ${totalWidth} ${height + 20}">
+      ${bars.join('')}
+      <text x="${totalWidth / 2}" y="${height + 15}" text-anchor="middle" font-family="monospace" font-size="10">${orderNumber}</text>
+    </svg>
+  `;
+};
+
 // Generate A5 professional invoice
 export const generateA5Invoice = (
   order: Order,
@@ -10,6 +58,7 @@ export const generateA5Invoice = (
   const phone = settings?.phone || '';
   const address = settings?.address || '';
   const receiptFooter = settings?.receiptFooter || 'شكراً لزيارتكم!';
+  const logo = settings?.logo;
 
   const orderTypeLabel = 
     order.type === 'dine-in' ? `طاولة ${order.tableName || ''}` : 
@@ -21,6 +70,8 @@ export const generateA5Invoice = (
 
   const dateStr = new Date(order.createdAt).toLocaleDateString('ar-EG');
   const timeStr = new Date(order.createdAt).toLocaleTimeString('ar-EG');
+  
+  const barcodeSVG = generateBarcodeSVG(order.orderNumber);
 
   return `
 <!DOCTYPE html>
@@ -87,6 +138,14 @@ export const generateA5Invoice = (
       font-size: 24px;
       margin-bottom: 8px;
       box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    }
+    .logo-image {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      margin-bottom: 8px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
     .restaurant-name {
       font-size: 22px;
@@ -302,6 +361,23 @@ export const generateA5Invoice = (
       box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
     }
     
+    /* Barcode Section */
+    .barcode-section {
+      text-align: center;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed #cbd5e1;
+    }
+    .barcode-section svg {
+      max-width: 200px;
+      height: auto;
+    }
+    .barcode-label {
+      font-size: 8px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+    
     /* Footer */
     .footer {
       text-align: center;
@@ -386,7 +462,10 @@ export const generateA5Invoice = (
     <!-- Header -->
     <div class="header">
       <div class="logo-section">
-        <div class="logo-icon">🍽️</div>
+        ${logo ? 
+          `<img src="${logo}" alt="Logo" class="logo-image" />` : 
+          `<div class="logo-icon">🍽️</div>`
+        }
         <div class="restaurant-name">${restaurantName}</div>
         ${restaurantNameEn ? `<div class="restaurant-name-en">${restaurantNameEn}</div>` : ''}
       </div>
@@ -484,6 +563,12 @@ export const generateA5Invoice = (
       <strong>📝 ملاحظات:</strong> ${order.notes}
     </div>
     ` : ''}
+
+    <!-- Barcode -->
+    <div class="barcode-section">
+      ${barcodeSVG}
+      <div class="barcode-label">رقم الطلب - للتتبع والاستعلام</div>
+    </div>
 
     <!-- Footer -->
     <div class="footer">

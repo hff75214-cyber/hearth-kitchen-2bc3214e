@@ -362,19 +362,24 @@ export default function Settings() {
           </Card>
         </motion.div>
 
-        {/* Theme Toggle */}
+        {/* Theme & Colors Settings */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <Card className="glass shadow-card">
             <CardHeader>
               <CardTitle className="text-foreground flex items-center gap-2">
                 {isDarkMode ? <Moon className="w-5 h-5 text-primary" /> : <Sun className="w-5 h-5 text-primary" />}
-                المظهر
+                المظهر والألوان
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {/* Light/Dark Toggle */}
               <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/50">
                 <div className="flex items-center gap-3">
-                  <Sun className="w-5 h-5 text-warning" />
+                  {isDarkMode ? (
+                    <Moon className="w-5 h-5 text-info" />
+                  ) : (
+                    <Sun className="w-5 h-5 text-warning" />
+                  )}
                   <div>
                     <p className="font-semibold text-foreground">الوضع الفاتح / الداكن</p>
                     <p className="text-sm text-muted-foreground">
@@ -390,6 +395,36 @@ export default function Settings() {
                   />
                   <Moon className="w-4 h-4 text-muted-foreground" />
                 </div>
+              </div>
+
+              {/* Theme Preview */}
+              <div className="p-4 rounded-lg bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 border border-border">
+                <p className="text-sm font-medium text-foreground mb-3">معاينة الثيم الحالي</p>
+                <div className="flex gap-3">
+                  <div className="flex-1 space-y-2">
+                    <div className="h-8 rounded-lg gradient-primary"></div>
+                    <p className="text-xs text-center text-muted-foreground">اللون الأساسي</p>
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-8 rounded-lg bg-secondary"></div>
+                    <p className="text-xs text-center text-muted-foreground">الخلفية الثانوية</p>
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-8 rounded-lg bg-success"></div>
+                    <p className="text-xs text-center text-muted-foreground">النجاح</p>
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-8 rounded-lg bg-destructive"></div>
+                    <p className="text-xs text-center text-muted-foreground">التحذير</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Theme Info */}
+              <div className="p-3 rounded-lg bg-info/10 border border-info/30">
+                <p className="text-sm text-foreground">
+                  💡 يتم حفظ إعدادات المظهر تلقائياً وتُطبق على جميع صفحات النظام
+                </p>
               </div>
             </CardContent>
           </Card>
