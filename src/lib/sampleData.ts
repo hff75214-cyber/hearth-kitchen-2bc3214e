@@ -278,22 +278,9 @@ export async function seedDemoData() {
     });
   }
 
-  // إضافة المستخدمين
-  const users = [
-    { name: 'المدير', password: '1234', role: 'admin' as const, permissions: defaultPermissionsByRole.admin, isActive: true },
-    { name: 'أحمد الكاشير', password: '1234', role: 'cashier' as const, permissions: defaultPermissionsByRole.cashier, isActive: true },
-    { name: 'محمد المطبخ', password: '1234', role: 'kitchen' as const, permissions: defaultPermissionsByRole.kitchen, isActive: true },
-    { name: 'علي النادل', password: '1234', role: 'waiter' as const, permissions: defaultPermissionsByRole.waiter, isActive: true },
-    { name: 'خالد التوصيل', password: '1234', role: 'delivery' as const, permissions: defaultPermissionsByRole.delivery, isActive: true },
-  ];
-
-  for (const user of users) {
-    await db.systemUsers.add({
-      ...user,
-      createdAt: now,
-      updatedAt: now,
-    });
-  }
+  // ملاحظة: لا نضيف مستخدمين تجريبيين هنا
+  // المستخدم الأول (المدير) يتم إنشاؤه عند أول تسجيل دخول
+  // هذا يضمن أن النظام يطلب إنشاء حساب المدير في أول مرة
 
   // إضافة المصروفات
   const expenses = [
@@ -318,12 +305,12 @@ export async function seedDemoData() {
     });
   }
 
-  // إضافة ورديات العمل
+  // إضافة ورديات العمل (بيانات تجريبية عامة - ستُربط بالمستخدمين الفعليين لاحقاً)
   const workShifts = [
     {
-      userId: 1,
-      userName: 'المدير',
-      userRole: 'admin' as const,
+      userId: 0, // سيُحدّث عند إنشاء المستخدم الأول
+      userName: 'موظف تجريبي 1',
+      userRole: 'cashier' as const,
       startTime: new Date(Date.now() - 8 * 60 * 60 * 1000),
       endTime: new Date(),
       totalHours: 8,
@@ -332,29 +319,22 @@ export async function seedDemoData() {
       isActive: false,
     },
     {
-      userId: 2,
-      userName: 'أحمد الكاشير',
+      userId: 0,
+      userName: 'موظف تجريبي 2',
       userRole: 'cashier' as const,
       startTime: new Date(Date.now() - 6 * 60 * 60 * 1000),
       totalSales: 2800,
       totalOrders: 18,
-      isActive: true,
+      isActive: false,
     },
     {
-      userId: 3,
-      userName: 'محمد المطبخ',
+      userId: 0,
+      userName: 'موظف المطبخ',
       userRole: 'kitchen' as const,
       startTime: new Date(Date.now() - 7 * 60 * 60 * 1000),
-      isActive: true,
-    },
-    {
-      userId: 4,
-      userName: 'علي النادل',
-      userRole: 'waiter' as const,
-      startTime: new Date(Date.now() - 5 * 60 * 60 * 1000),
-      totalSales: 1200,
-      totalOrders: 8,
-      isActive: true,
+      endTime: new Date(Date.now() - 1 * 60 * 60 * 1000),
+      totalHours: 6,
+      isActive: false,
     },
   ];
 
@@ -362,16 +342,12 @@ export async function seedDemoData() {
     await db.workShifts.add(shift);
   }
 
-  // إضافة سجل النشاط
+  // إضافة سجل النشاط (بيانات تجريبية عامة)
   const activityLogs = [
-    { userId: 1, userName: 'المدير', userRole: 'admin' as const, type: 'login' as const, description: 'تسجيل دخول المدير' },
-    { userId: 2, userName: 'أحمد الكاشير', userRole: 'cashier' as const, type: 'login' as const, description: 'تسجيل دخول الكاشير' },
-    { userId: 1, userName: 'المدير', userRole: 'admin' as const, type: 'sale' as const, description: 'عملية بيع - طلب #ORD-001', amount: 250 },
-    { userId: 2, userName: 'أحمد الكاشير', userRole: 'cashier' as const, type: 'sale' as const, description: 'عملية بيع - طلب #ORD-002', amount: 180 },
-    { userId: 1, userName: 'المدير', userRole: 'admin' as const, type: 'product_add' as const, description: 'إضافة منتج جديد - كباب مشوي' },
-    { userId: 1, userName: 'المدير', userRole: 'admin' as const, type: 'settings_change' as const, description: 'تغيير إعدادات المطعم' },
-    { userId: 2, userName: 'أحمد الكاشير', userRole: 'cashier' as const, type: 'shift_start' as const, description: 'بدء وردية العمل' },
-    { userId: 1, userName: 'المدير', userRole: 'admin' as const, type: 'user_add' as const, description: 'إضافة مستخدم جديد - علي النادل' },
+    { userId: 0, userName: 'النظام', userRole: 'admin' as const, type: 'settings_change' as const, description: 'تهيئة إعدادات النظام' },
+    { userId: 0, userName: 'موظف تجريبي', userRole: 'cashier' as const, type: 'sale' as const, description: 'عملية بيع تجريبية - طلب #ORD-001', amount: 250 },
+    { userId: 0, userName: 'موظف تجريبي', userRole: 'cashier' as const, type: 'sale' as const, description: 'عملية بيع تجريبية - طلب #ORD-002', amount: 180 },
+    { userId: 0, userName: 'النظام', userRole: 'admin' as const, type: 'product_add' as const, description: 'إضافة المنتجات التجريبية' },
   ];
 
   for (const log of activityLogs) {
@@ -381,11 +357,11 @@ export async function seedDemoData() {
     });
   }
 
-  // إضافة أهداف المبيعات
+  // إضافة أهداف المبيعات (عامة - ستُربط بالمستخدم الفعلي لاحقاً)
   const salesGoals = [
-    { userId: 1, targetAmount: 50000, period: 'monthly' as const, startDate: new Date(), bonus: 2000, description: 'هدف المبيعات الشهري', isAchieved: false },
-    { userId: 2, targetAmount: 5000, period: 'daily' as const, startDate: new Date(), bonus: 100, description: 'هدف المبيعات اليومي', isAchieved: false },
-    { userId: 2, targetAmount: 25000, period: 'weekly' as const, startDate: new Date(), bonus: 500, description: 'هدف المبيعات الأسبوعي', isAchieved: false },
+    { userId: 0, targetAmount: 50000, period: 'monthly' as const, startDate: new Date(), bonus: 2000, description: 'هدف المبيعات الشهري العام', isAchieved: false },
+    { userId: 0, targetAmount: 5000, period: 'daily' as const, startDate: new Date(), bonus: 100, description: 'هدف المبيعات اليومي', isAchieved: false },
+    { userId: 0, targetAmount: 25000, period: 'weekly' as const, startDate: new Date(), bonus: 500, description: 'هدف المبيعات الأسبوعي', isAchieved: false },
   ];
 
   for (const goal of salesGoals) {
