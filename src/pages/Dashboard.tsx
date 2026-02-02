@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   TrendingUp,
@@ -13,6 +13,7 @@ import {
   Calendar,
   BarChart3,
 } from 'lucide-react';
+import LiveOrdersPanel from '@/components/LiveOrdersPanel';
 import { db, Order, Product } from '@/lib/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -610,68 +611,80 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Recent Orders */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.65 }}
-      >
-        <Card className="glass shadow-card">
-          <CardHeader>
-            <CardTitle className="text-foreground">آخر الطلبات</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentOrders.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>لا توجد طلبات حتى الآن</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentOrders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-lg ${
-                        order.type === 'dine-in' ? 'bg-primary/20 text-primary' :
-                        order.type === 'delivery' ? 'bg-info/20 text-info' :
-                        'bg-success/20 text-success'
-                      }`}>
-                        <ShoppingCart className="w-4 h-4" />
+      {/* Live Orders Panel + Recent Orders */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Live Orders Panel */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65 }}
+        >
+          <LiveOrdersPanel />
+        </motion.div>
+
+        {/* Recent Orders */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+        >
+          <Card className="glass shadow-card h-full">
+            <CardHeader>
+              <CardTitle className="text-foreground">آخر الطلبات</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {recentOrders.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>لا توجد طلبات حتى الآن</p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[450px] overflow-y-auto">
+                  {recentOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`p-2 rounded-lg ${
+                          order.type === 'dine-in' ? 'bg-primary/20 text-primary' :
+                          order.type === 'delivery' ? 'bg-info/20 text-info' :
+                          'bg-success/20 text-success'
+                        }`}>
+                          <ShoppingCart className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-foreground">{order.orderNumber}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {order.type === 'dine-in' ? `طاولة ${order.tableName || ''}` :
+                             order.type === 'delivery' ? 'توصيل' : 'استلام'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold text-foreground">{order.orderNumber}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {order.type === 'dine-in' ? `طاولة ${order.tableName || ''}` :
-                           order.type === 'delivery' ? 'توصيل' : 'استلام'}
-                        </p>
+                      <div className="text-left">
+                        <p className="font-bold text-foreground">{order.total.toFixed(2)} ج.م</p>
+                        <Badge className={`text-xs ${
+                          order.status === 'completed' ? 'bg-success/20 text-success' :
+                          order.status === 'pending' ? 'bg-warning/20 text-warning' :
+                          order.status === 'cancelled' ? 'bg-destructive/20 text-destructive' :
+                          'bg-info/20 text-info'
+                        }`}>
+                          {order.status === 'completed' ? 'مكتمل' :
+                           order.status === 'pending' ? 'في الانتظار' :
+                           order.status === 'preparing' ? 'قيد التحضير' :
+                           order.status === 'ready' ? 'جاهز' :
+                           order.status === 'delivered' ? 'تم التوصيل' :
+                           'ملغي'}
+                        </Badge>
                       </div>
                     </div>
-                    <div className="text-left">
-                      <p className="font-bold text-foreground">{order.total.toFixed(2)} ج.م</p>
-                      <Badge className={`text-xs ${
-                        order.status === 'completed' ? 'bg-success/20 text-success' :
-                        order.status === 'pending' ? 'bg-warning/20 text-warning' :
-                        order.status === 'cancelled' ? 'bg-destructive/20 text-destructive' :
-                        'bg-info/20 text-info'
-                      }`}>
-                        {order.status === 'completed' ? 'مكتمل' :
-                         order.status === 'pending' ? 'في الانتظار' :
-                         order.status === 'preparing' ? 'قيد التحضير' :
-                         order.status === 'ready' ? 'جاهز' :
-                         order.status === 'delivered' ? 'تم التوصيل' :
-                         'ملغي'}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
     </div>
   );
 }
