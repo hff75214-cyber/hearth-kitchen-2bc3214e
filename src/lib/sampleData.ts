@@ -389,8 +389,8 @@ export async function seedDemoData() {
 
   // إضافة إعدادات المطعم
   await db.settings.add({
-    restaurantName: 'مطعم الأصالة',
-    restaurantNameEn: 'Al-Asala Restaurant',
+    restaurantName: 'مطعم محمد أيمن',
+    restaurantNameEn: 'Mohamed Ayman Restaurant',
     phone: '01012345678',
     address: 'شارع التحرير، القاهرة، مصر',
     taxRate: 14,
