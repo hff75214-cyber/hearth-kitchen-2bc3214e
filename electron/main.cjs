@@ -20,7 +20,7 @@ function createWindow() {
     },
     autoHideMenuBar: true,
     show: false,
-    title: 'نظام إدارة المطعم - Restaurant POS',
+    title: 'نظام كاشير محمد أيمن - Mohamed Ayman POS',
   });
 
   // Load the production build using file protocol

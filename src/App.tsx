@@ -37,6 +37,7 @@ import Branches from "./pages/Branches";
 import Suppliers from "./pages/Suppliers";
 import CustomerDisplay from "./pages/CustomerDisplay";
 import Welcome from "./pages/Welcome";
+import About from "./pages/About";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +81,7 @@ const routePermissions: Record<string, PagePermission> = {
   '/users': 'users',
   '/activity-log': 'activity-log',
   '/shifts': 'shifts',
+  '/about': 'about',
 };
 
 // Protected Route Component
@@ -447,6 +449,15 @@ const App = () => {
                 <ProtectedRoute 
                   element={<Suppliers />} 
                   requiredPermission="suppliers" 
+                  userPermissions={userPermissions}
+                  defaultPath={defaultPath}
+                />
+              } />
+              
+              <Route path="/about" element={
+                <ProtectedRoute 
+                  element={<About />} 
+                  requiredPermission="about" 
                   userPermissions={userPermissions}
                   defaultPath={defaultPath}
                 />

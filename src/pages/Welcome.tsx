@@ -811,7 +811,7 @@ export default function Welcome({ onComplete }: WelcomeProps) {
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ChefHat className="w-6 h-6 text-primary" />
-          <span className="font-semibold text-foreground">Restaurant POS</span>
+          <span className="font-semibold text-foreground">نظام كاشير محمد أيمن</span>
         </div>
         <div className="flex items-center gap-1">
           {Array.from({ length: totalSteps }).map((_, i) => (

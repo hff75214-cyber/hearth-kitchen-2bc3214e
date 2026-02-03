@@ -33,7 +33,7 @@ export function MainLayout({ children, userName, userRole, userPermissions = [],
         style={{ right: sidebarWidth }}
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">نظام كاشير المطعم</span>
+          <span className="text-sm text-muted-foreground">نظام كاشير محمد أيمن</span>
         </div>
         <div className="flex items-center gap-3">
           <NotificationSystem />

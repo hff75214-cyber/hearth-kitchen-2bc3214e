@@ -188,7 +188,8 @@ export type PagePermission =
   | 'employee-performance'
   | 'sales-goals'
   | 'branches'
-  | 'suppliers';
+  | 'suppliers'
+  | 'about';
 
 // جدول المستخدمين المحليين
 export interface SystemUser {
@@ -343,7 +344,7 @@ export interface SalesGoal {
 
 // الصلاحيات الافتراضية لكل دور
 export const defaultPermissionsByRole: Record<UserRole, PagePermission[]> = {
-  admin: ['dashboard', 'pos', 'products', 'inventory', 'materials', 'materials-report', 'tables', 'tables-view', 'kitchen', 'kitchen-stats', 'delivery', 'customers', 'sales', 'reports', 'settings', 'users', 'activity-log', 'shifts', 'loyalty', 'reservations', 'expenses', 'offers', 'offers-report', 'employee-performance', 'sales-goals', 'branches', 'suppliers'],
+  admin: ['dashboard', 'pos', 'products', 'inventory', 'materials', 'materials-report', 'tables', 'tables-view', 'kitchen', 'kitchen-stats', 'delivery', 'customers', 'sales', 'reports', 'settings', 'users', 'activity-log', 'shifts', 'loyalty', 'reservations', 'expenses', 'offers', 'offers-report', 'employee-performance', 'sales-goals', 'branches', 'suppliers', 'about'],
   cashier: ['pos', 'customers', 'loyalty'],
   kitchen: ['kitchen', 'kitchen-stats'],
   waiter: ['pos', 'tables', 'tables-view', 'reservations'],
@@ -388,6 +389,7 @@ export const pageNames: Record<PagePermission, string> = {
   'sales-goals': 'أهداف المبيعات',
   branches: 'الفروع',
   suppliers: 'الموردين',
+  about: 'حول النظام',
 };
 
 // أسماء أنواع النشاط بالعربي

@@ -29,6 +29,7 @@ import {
   PieChart,
   Building2,
   Package2,
+  Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PagePermission } from '@/lib/database';
@@ -68,6 +69,7 @@ const allMenuItems: MenuItem[] = [
   { path: '/activity-log', icon: Activity, label: 'سجل النشاط', permission: 'activity-log' },
   { path: '/shifts', icon: Clock, label: 'ورديات العمل', permission: 'shifts' },
   { path: '/settings', icon: Settings, label: 'الإعدادات', permission: 'settings' },
+  { path: '/about', icon: Info, label: 'حول النظام', permission: 'about' },
 ];
 
 interface SidebarProps {
@@ -108,7 +110,7 @@ export function Sidebar({ onWidthChange, userPermissions = [] }: SidebarProps) {
               <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-glow">
                 <UtensilsCrossed className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="font-bold text-lg text-foreground">كاشير المطعم</span>
+              <span className="font-bold text-lg text-foreground">كاشير محمد أيمن</span>
             </motion.div>
           )}
         </AnimatePresence>
