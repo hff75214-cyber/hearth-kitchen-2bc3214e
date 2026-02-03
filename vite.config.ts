@@ -17,11 +17,11 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt'],
+      includeAssets: ['favicon.ico', 'robots.txt', 'app-icon.png'],
       manifest: {
-        name: 'نظام إدارة المطعم - Restaurant POS',
-        short_name: 'Restaurant POS',
-        description: 'نظام نقاط البيع وإدارة المطاعم المتكامل',
+        name: 'نظام كاشير محمد أيمن - Mohamed Ayman POS',
+        short_name: 'كاشير محمد أيمن',
+        description: 'نظام كاشير مطعم محمد أيمن المتكامل لإدارة المطاعم',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',

@@ -290,7 +290,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">لوحة التحكم</h1>
           <p className="text-muted-foreground mt-1">
-            مرحباً بك في نظام كاشير المطعم
+            مرحباً بك في نظام كاشير محمد أيمن
           </p>
         </div>
         <div className="flex items-center gap-4">
