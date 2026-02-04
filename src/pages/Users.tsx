@@ -139,7 +139,7 @@ export default function Users() {
     try {
       if (editingUser) {
         const updateData: Partial<SystemUser> = {
-          name: formData.name,
+          name: formData.name?.trim() || '',
           role: formData.role,
           permissions: formData.permissions,
           isActive: formData.isActive,
@@ -155,7 +155,11 @@ export default function Users() {
         toast({ title: 'تم التحديث', description: 'تم تحديث المستخدم بنجاح' });
       } else {
         await db.systemUsers.add({
-          ...formData as SystemUser,
+          name: formData.name?.trim() || '',
+          password: formData.password || '',
+          role: formData.role || 'cashier',
+          permissions: formData.permissions || [],
+          isActive: formData.isActive !== false,
           createdAt: new Date(),
           updatedAt: new Date(),
         });

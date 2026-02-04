@@ -1,5 +1,33 @@
 import { db, generateSKU, generateBarcode, addNotification, defaultPermissionsByRole } from './database';
 
+// استيراد صور المنتجات
+import teaImg from '@/assets/products/tea.jpg';
+import turkishCoffeeImg from '@/assets/products/turkish-coffee.jpg';
+import cappuccinoImg from '@/assets/products/cappuccino.jpg';
+import orangeJuiceImg from '@/assets/products/orange-juice.jpg';
+import mangoJuiceImg from '@/assets/products/mango-juice.jpg';
+import milkshakeImg from '@/assets/products/milkshake.jpg';
+import mojitoImg from '@/assets/products/mojito.jpg';
+import kebabImg from '@/assets/products/kebab.jpg';
+import grilledChickenImg from '@/assets/products/grilled-chicken.jpg';
+import grilledFishImg from '@/assets/products/grilled-fish.jpg';
+import koftaImg from '@/assets/products/kofta.jpg';
+import shawarmaImg from '@/assets/products/shawarma.jpg';
+import lambChopsImg from '@/assets/products/lamb-chops.jpg';
+import burgerImg from '@/assets/products/burger.jpg';
+import pizzaImg from '@/assets/products/pizza.jpg';
+import crepeImg from '@/assets/products/crepe.jpg';
+import saladImg from '@/assets/products/salad.jpg';
+import hummusImg from '@/assets/products/hummus.jpg';
+import babaGhanoushImg from '@/assets/products/baba-ghanoush.jpg';
+import foulImg from '@/assets/products/foul.jpg';
+import kunafaImg from '@/assets/products/kunafa.jpg';
+import basbousaImg from '@/assets/products/basbousa.jpg';
+import omAliImg from '@/assets/products/om-ali.jpg';
+import iceCreamImg from '@/assets/products/ice-cream.jpg';
+import friesImg from '@/assets/products/fries.jpg';
+import nuggetsImg from '@/assets/products/nuggets.jpg';
+
 // دالة لإضافة البيانات التجريبية الكاملة
 export async function seedDemoData() {
   // التحقق من عدم وجود بيانات مسبقة
@@ -11,55 +39,55 @@ export async function seedDemoData() {
   // إضافة المنتجات التجريبية
   const products = [
     // مشروبات ساخنة
-    { name: 'شاي', nameEn: 'Tea', category: 'مشروبات ساخنة', type: 'prepared' as const, costPrice: 3, salePrice: 15, unit: 'كوب', quantity: 100, minQuantityAlert: 20, preparationTime: 3, isActive: true },
-    { name: 'قهوة تركي', nameEn: 'Turkish Coffee', category: 'مشروبات ساخنة', type: 'prepared' as const, costPrice: 5, salePrice: 20, unit: 'فنجان', quantity: 100, minQuantityAlert: 20, preparationTime: 5, isActive: true },
-    { name: 'نسكافيه', nameEn: 'Nescafe', category: 'مشروبات ساخنة', type: 'prepared' as const, costPrice: 4, salePrice: 18, unit: 'كوب', quantity: 100, minQuantityAlert: 20, preparationTime: 3, isActive: true },
-    { name: 'كابتشينو', nameEn: 'Cappuccino', category: 'مشروبات ساخنة', type: 'prepared' as const, costPrice: 8, salePrice: 35, unit: 'كوب', quantity: 100, minQuantityAlert: 20, preparationTime: 5, isActive: true },
-    { name: 'لاتيه', nameEn: 'Latte', category: 'مشروبات ساخنة', type: 'prepared' as const, costPrice: 9, salePrice: 38, unit: 'كوب', quantity: 100, minQuantityAlert: 20, preparationTime: 5, isActive: true },
+    { name: 'شاي', nameEn: 'Tea', category: 'مشروبات ساخنة', type: 'prepared' as const, costPrice: 3, salePrice: 15, unit: 'كوب', quantity: 100, minQuantityAlert: 20, preparationTime: 3, isActive: true, image: teaImg },
+    { name: 'قهوة تركي', nameEn: 'Turkish Coffee', category: 'مشروبات ساخنة', type: 'prepared' as const, costPrice: 5, salePrice: 20, unit: 'فنجان', quantity: 100, minQuantityAlert: 20, preparationTime: 5, isActive: true, image: turkishCoffeeImg },
+    { name: 'نسكافيه', nameEn: 'Nescafe', category: 'مشروبات ساخنة', type: 'prepared' as const, costPrice: 4, salePrice: 18, unit: 'كوب', quantity: 100, minQuantityAlert: 20, preparationTime: 3, isActive: true, image: turkishCoffeeImg },
+    { name: 'كابتشينو', nameEn: 'Cappuccino', category: 'مشروبات ساخنة', type: 'prepared' as const, costPrice: 8, salePrice: 35, unit: 'كوب', quantity: 100, minQuantityAlert: 20, preparationTime: 5, isActive: true, image: cappuccinoImg },
+    { name: 'لاتيه', nameEn: 'Latte', category: 'مشروبات ساخنة', type: 'prepared' as const, costPrice: 9, salePrice: 38, unit: 'كوب', quantity: 100, minQuantityAlert: 20, preparationTime: 5, isActive: true, image: cappuccinoImg },
     
     // مشروبات باردة
-    { name: 'عصير برتقال', nameEn: 'Orange Juice', category: 'عصائر طازجة', type: 'prepared' as const, costPrice: 10, salePrice: 30, unit: 'كوب', quantity: 50, minQuantityAlert: 10, preparationTime: 5, isActive: true },
-    { name: 'عصير مانجو', nameEn: 'Mango Juice', category: 'عصائر طازجة', type: 'prepared' as const, costPrice: 12, salePrice: 35, unit: 'كوب', quantity: 50, minQuantityAlert: 10, preparationTime: 5, isActive: true },
-    { name: 'ميلك شيك شوكولاتة', nameEn: 'Chocolate Milkshake', category: 'مشروبات باردة', type: 'prepared' as const, costPrice: 15, salePrice: 45, unit: 'كوب', quantity: 50, minQuantityAlert: 10, preparationTime: 7, isActive: true },
-    { name: 'موهيتو', nameEn: 'Mojito', category: 'مشروبات باردة', type: 'prepared' as const, costPrice: 10, salePrice: 35, unit: 'كوب', quantity: 50, minQuantityAlert: 10, preparationTime: 5, isActive: true },
-    { name: 'سموثي فراولة', nameEn: 'Strawberry Smoothie', category: 'مشروبات باردة', type: 'prepared' as const, costPrice: 14, salePrice: 40, unit: 'كوب', quantity: 40, minQuantityAlert: 10, preparationTime: 6, isActive: true },
+    { name: 'عصير برتقال', nameEn: 'Orange Juice', category: 'عصائر طازجة', type: 'prepared' as const, costPrice: 10, salePrice: 30, unit: 'كوب', quantity: 50, minQuantityAlert: 10, preparationTime: 5, isActive: true, image: orangeJuiceImg },
+    { name: 'عصير مانجو', nameEn: 'Mango Juice', category: 'عصائر طازجة', type: 'prepared' as const, costPrice: 12, salePrice: 35, unit: 'كوب', quantity: 50, minQuantityAlert: 10, preparationTime: 5, isActive: true, image: mangoJuiceImg },
+    { name: 'ميلك شيك شوكولاتة', nameEn: 'Chocolate Milkshake', category: 'مشروبات باردة', type: 'prepared' as const, costPrice: 15, salePrice: 45, unit: 'كوب', quantity: 50, minQuantityAlert: 10, preparationTime: 7, isActive: true, image: milkshakeImg },
+    { name: 'موهيتو', nameEn: 'Mojito', category: 'مشروبات باردة', type: 'prepared' as const, costPrice: 10, salePrice: 35, unit: 'كوب', quantity: 50, minQuantityAlert: 10, preparationTime: 5, isActive: true, image: mojitoImg },
+    { name: 'سموثي فراولة', nameEn: 'Strawberry Smoothie', category: 'مشروبات باردة', type: 'prepared' as const, costPrice: 14, salePrice: 40, unit: 'كوب', quantity: 40, minQuantityAlert: 10, preparationTime: 6, isActive: true, image: milkshakeImg },
     
     // وجبات رئيسية
-    { name: 'كباب مشوي', nameEn: 'Grilled Kebab', category: 'وجبات رئيسية', type: 'prepared' as const, costPrice: 50, salePrice: 120, unit: 'طبق', quantity: 30, minQuantityAlert: 5, preparationTime: 25, isActive: true },
-    { name: 'فراخ مشوية', nameEn: 'Grilled Chicken', category: 'وجبات رئيسية', type: 'prepared' as const, costPrice: 45, salePrice: 100, unit: 'طبق', quantity: 25, minQuantityAlert: 5, preparationTime: 30, isActive: true },
-    { name: 'سمك مشوي', nameEn: 'Grilled Fish', category: 'وجبات رئيسية', type: 'prepared' as const, costPrice: 60, salePrice: 140, unit: 'طبق', quantity: 20, minQuantityAlert: 5, preparationTime: 25, isActive: true },
-    { name: 'كفتة', nameEn: 'Kofta', category: 'وجبات رئيسية', type: 'prepared' as const, costPrice: 40, salePrice: 95, unit: 'طبق', quantity: 30, minQuantityAlert: 5, preparationTime: 20, isActive: true },
-    { name: 'فتة شاورما', nameEn: 'Shawarma Fatta', category: 'وجبات رئيسية', type: 'prepared' as const, costPrice: 55, salePrice: 110, unit: 'طبق', quantity: 25, minQuantityAlert: 5, preparationTime: 20, isActive: true },
-    { name: 'ريش ضاني', nameEn: 'Lamb Chops', category: 'وجبات رئيسية', type: 'prepared' as const, costPrice: 80, salePrice: 180, unit: 'طبق', quantity: 15, minQuantityAlert: 3, preparationTime: 35, isActive: true },
+    { name: 'كباب مشوي', nameEn: 'Grilled Kebab', category: 'وجبات رئيسية', type: 'prepared' as const, costPrice: 50, salePrice: 120, unit: 'طبق', quantity: 30, minQuantityAlert: 5, preparationTime: 25, isActive: true, image: kebabImg },
+    { name: 'فراخ مشوية', nameEn: 'Grilled Chicken', category: 'وجبات رئيسية', type: 'prepared' as const, costPrice: 45, salePrice: 100, unit: 'طبق', quantity: 25, minQuantityAlert: 5, preparationTime: 30, isActive: true, image: grilledChickenImg },
+    { name: 'سمك مشوي', nameEn: 'Grilled Fish', category: 'وجبات رئيسية', type: 'prepared' as const, costPrice: 60, salePrice: 140, unit: 'طبق', quantity: 20, minQuantityAlert: 5, preparationTime: 25, isActive: true, image: grilledFishImg },
+    { name: 'كفتة', nameEn: 'Kofta', category: 'وجبات رئيسية', type: 'prepared' as const, costPrice: 40, salePrice: 95, unit: 'طبق', quantity: 30, minQuantityAlert: 5, preparationTime: 20, isActive: true, image: koftaImg },
+    { name: 'فتة شاورما', nameEn: 'Shawarma Fatta', category: 'وجبات رئيسية', type: 'prepared' as const, costPrice: 55, salePrice: 110, unit: 'طبق', quantity: 25, minQuantityAlert: 5, preparationTime: 20, isActive: true, image: shawarmaImg },
+    { name: 'ريش ضاني', nameEn: 'Lamb Chops', category: 'وجبات رئيسية', type: 'prepared' as const, costPrice: 80, salePrice: 180, unit: 'طبق', quantity: 15, minQuantityAlert: 3, preparationTime: 35, isActive: true, image: lambChopsImg },
     
     // وجبات سريعة
-    { name: 'برجر لحم', nameEn: 'Beef Burger', category: 'وجبات سريعة', type: 'prepared' as const, costPrice: 25, salePrice: 65, unit: 'ساندويتش', quantity: 40, minQuantityAlert: 10, preparationTime: 12, isActive: true },
-    { name: 'برجر دجاج', nameEn: 'Chicken Burger', category: 'وجبات سريعة', type: 'prepared' as const, costPrice: 20, salePrice: 55, unit: 'ساندويتش', quantity: 40, minQuantityAlert: 10, preparationTime: 10, isActive: true },
-    { name: 'شاورما لحم', nameEn: 'Beef Shawarma', category: 'وجبات سريعة', type: 'prepared' as const, costPrice: 18, salePrice: 50, unit: 'ساندويتش', quantity: 50, minQuantityAlert: 15, preparationTime: 8, isActive: true },
-    { name: 'شاورما فراخ', nameEn: 'Chicken Shawarma', category: 'وجبات سريعة', type: 'prepared' as const, costPrice: 15, salePrice: 45, unit: 'ساندويتش', quantity: 50, minQuantityAlert: 15, preparationTime: 8, isActive: true },
-    { name: 'بيتزا مارجريتا', nameEn: 'Margherita Pizza', category: 'وجبات سريعة', type: 'prepared' as const, costPrice: 30, salePrice: 80, unit: 'قطعة', quantity: 30, minQuantityAlert: 10, preparationTime: 20, isActive: true },
-    { name: 'بيتزا بالخضار', nameEn: 'Veggie Pizza', category: 'وجبات سريعة', type: 'prepared' as const, costPrice: 35, salePrice: 90, unit: 'قطعة', quantity: 30, minQuantityAlert: 10, preparationTime: 20, isActive: true },
-    { name: 'كريب سادة', nameEn: 'Plain Crepe', category: 'وجبات سريعة', type: 'prepared' as const, costPrice: 12, salePrice: 35, unit: 'قطعة', quantity: 40, minQuantityAlert: 10, preparationTime: 8, isActive: true },
+    { name: 'برجر لحم', nameEn: 'Beef Burger', category: 'وجبات سريعة', type: 'prepared' as const, costPrice: 25, salePrice: 65, unit: 'ساندويتش', quantity: 40, minQuantityAlert: 10, preparationTime: 12, isActive: true, image: burgerImg },
+    { name: 'برجر دجاج', nameEn: 'Chicken Burger', category: 'وجبات سريعة', type: 'prepared' as const, costPrice: 20, salePrice: 55, unit: 'ساندويتش', quantity: 40, minQuantityAlert: 10, preparationTime: 10, isActive: true, image: burgerImg },
+    { name: 'شاورما لحم', nameEn: 'Beef Shawarma', category: 'وجبات سريعة', type: 'prepared' as const, costPrice: 18, salePrice: 50, unit: 'ساندويتش', quantity: 50, minQuantityAlert: 15, preparationTime: 8, isActive: true, image: shawarmaImg },
+    { name: 'شاورما فراخ', nameEn: 'Chicken Shawarma', category: 'وجبات سريعة', type: 'prepared' as const, costPrice: 15, salePrice: 45, unit: 'ساندويتش', quantity: 50, minQuantityAlert: 15, preparationTime: 8, isActive: true, image: shawarmaImg },
+    { name: 'بيتزا مارجريتا', nameEn: 'Margherita Pizza', category: 'وجبات سريعة', type: 'prepared' as const, costPrice: 30, salePrice: 80, unit: 'قطعة', quantity: 30, minQuantityAlert: 10, preparationTime: 20, isActive: true, image: pizzaImg },
+    { name: 'بيتزا بالخضار', nameEn: 'Veggie Pizza', category: 'وجبات سريعة', type: 'prepared' as const, costPrice: 35, salePrice: 90, unit: 'قطعة', quantity: 30, minQuantityAlert: 10, preparationTime: 20, isActive: true, image: pizzaImg },
+    { name: 'كريب سادة', nameEn: 'Plain Crepe', category: 'وجبات سريعة', type: 'prepared' as const, costPrice: 12, salePrice: 35, unit: 'قطعة', quantity: 40, minQuantityAlert: 10, preparationTime: 8, isActive: true, image: crepeImg },
     
     // مقبلات
-    { name: 'سلطة خضراء', nameEn: 'Green Salad', category: 'مقبلات', type: 'prepared' as const, costPrice: 8, salePrice: 25, unit: 'طبق', quantity: 50, minQuantityAlert: 10, preparationTime: 5, isActive: true },
-    { name: 'حمص', nameEn: 'Hummus', category: 'مقبلات', type: 'prepared' as const, costPrice: 10, salePrice: 30, unit: 'طبق', quantity: 40, minQuantityAlert: 10, preparationTime: 5, isActive: true },
-    { name: 'بابا غنوج', nameEn: 'Baba Ghanoush', category: 'مقبلات', type: 'prepared' as const, costPrice: 12, salePrice: 35, unit: 'طبق', quantity: 40, minQuantityAlert: 10, preparationTime: 5, isActive: true },
-    { name: 'فول', nameEn: 'Fava Beans', category: 'مقبلات', type: 'prepared' as const, costPrice: 6, salePrice: 20, unit: 'طبق', quantity: 50, minQuantityAlert: 15, preparationTime: 5, isActive: true },
-    { name: 'طحينة', nameEn: 'Tahini', category: 'مقبلات', type: 'prepared' as const, costPrice: 5, salePrice: 18, unit: 'طبق', quantity: 50, minQuantityAlert: 15, preparationTime: 3, isActive: true },
+    { name: 'سلطة خضراء', nameEn: 'Green Salad', category: 'مقبلات', type: 'prepared' as const, costPrice: 8, salePrice: 25, unit: 'طبق', quantity: 50, minQuantityAlert: 10, preparationTime: 5, isActive: true, image: saladImg },
+    { name: 'حمص', nameEn: 'Hummus', category: 'مقبلات', type: 'prepared' as const, costPrice: 10, salePrice: 30, unit: 'طبق', quantity: 40, minQuantityAlert: 10, preparationTime: 5, isActive: true, image: hummusImg },
+    { name: 'بابا غنوج', nameEn: 'Baba Ghanoush', category: 'مقبلات', type: 'prepared' as const, costPrice: 12, salePrice: 35, unit: 'طبق', quantity: 40, minQuantityAlert: 10, preparationTime: 5, isActive: true, image: babaGhanoushImg },
+    { name: 'فول', nameEn: 'Fava Beans', category: 'مقبلات', type: 'prepared' as const, costPrice: 6, salePrice: 20, unit: 'طبق', quantity: 50, minQuantityAlert: 15, preparationTime: 5, isActive: true, image: foulImg },
+    { name: 'طحينة', nameEn: 'Tahini', category: 'مقبلات', type: 'prepared' as const, costPrice: 5, salePrice: 18, unit: 'طبق', quantity: 50, minQuantityAlert: 15, preparationTime: 3, isActive: true, image: hummusImg },
     
     // حلويات
-    { name: 'كنافة', nameEn: 'Kunafa', category: 'حلويات', type: 'prepared' as const, costPrice: 15, salePrice: 45, unit: 'قطعة', quantity: 30, minQuantityAlert: 5, preparationTime: 10, isActive: true },
-    { name: 'بسبوسة', nameEn: 'Basbousa', category: 'حلويات', type: 'prepared' as const, costPrice: 8, salePrice: 25, unit: 'قطعة', quantity: 30, minQuantityAlert: 10, preparationTime: 5, isActive: true },
-    { name: 'أم علي', nameEn: 'Om Ali', category: 'حلويات', type: 'prepared' as const, costPrice: 12, salePrice: 35, unit: 'طبق', quantity: 25, minQuantityAlert: 5, preparationTime: 15, isActive: true },
-    { name: 'آيس كريم', nameEn: 'Ice Cream', category: 'حلويات', type: 'stored' as const, costPrice: 8, salePrice: 25, unit: 'طبق', quantity: 40, minQuantityAlert: 10, isActive: true },
-    { name: 'كريم كراميل', nameEn: 'Creme Caramel', category: 'حلويات', type: 'prepared' as const, costPrice: 10, salePrice: 30, unit: 'قطعة', quantity: 25, minQuantityAlert: 5, preparationTime: 10, isActive: true },
+    { name: 'كنافة', nameEn: 'Kunafa', category: 'حلويات', type: 'prepared' as const, costPrice: 15, salePrice: 45, unit: 'قطعة', quantity: 30, minQuantityAlert: 5, preparationTime: 10, isActive: true, image: kunafaImg },
+    { name: 'بسبوسة', nameEn: 'Basbousa', category: 'حلويات', type: 'prepared' as const, costPrice: 8, salePrice: 25, unit: 'قطعة', quantity: 30, minQuantityAlert: 10, preparationTime: 5, isActive: true, image: basbousaImg },
+    { name: 'أم علي', nameEn: 'Om Ali', category: 'حلويات', type: 'prepared' as const, costPrice: 12, salePrice: 35, unit: 'طبق', quantity: 25, minQuantityAlert: 5, preparationTime: 15, isActive: true, image: omAliImg },
+    { name: 'آيس كريم', nameEn: 'Ice Cream', category: 'حلويات', type: 'stored' as const, costPrice: 8, salePrice: 25, unit: 'طبق', quantity: 40, minQuantityAlert: 10, isActive: true, image: iceCreamImg },
+    { name: 'كريم كراميل', nameEn: 'Creme Caramel', category: 'حلويات', type: 'prepared' as const, costPrice: 10, salePrice: 30, unit: 'قطعة', quantity: 25, minQuantityAlert: 5, preparationTime: 10, isActive: true, image: omAliImg },
     
     // سناكس
-    { name: 'بطاطس مقلية', nameEn: 'French Fries', category: 'سناكس', type: 'prepared' as const, costPrice: 10, salePrice: 30, unit: 'طبق', quantity: 50, minQuantityAlert: 15, preparationTime: 10, isActive: true },
-    { name: 'ناجتس دجاج', nameEn: 'Chicken Nuggets', category: 'سناكس', type: 'prepared' as const, costPrice: 15, salePrice: 40, unit: 'طبق', quantity: 40, minQuantityAlert: 10, preparationTime: 12, isActive: true },
-    { name: 'أصابع الموزاريلا', nameEn: 'Mozzarella Sticks', category: 'سناكس', type: 'prepared' as const, costPrice: 18, salePrice: 50, unit: 'طبق', quantity: 35, minQuantityAlert: 10, preparationTime: 8, isActive: true },
-    { name: 'سبرنج رول', nameEn: 'Spring Rolls', category: 'سناكس', type: 'prepared' as const, costPrice: 12, salePrice: 35, unit: 'قطعة', quantity: 40, minQuantityAlert: 10, preparationTime: 8, isActive: true },
+    { name: 'بطاطس مقلية', nameEn: 'French Fries', category: 'سناكس', type: 'prepared' as const, costPrice: 10, salePrice: 30, unit: 'طبق', quantity: 50, minQuantityAlert: 15, preparationTime: 10, isActive: true, image: friesImg },
+    { name: 'ناجتس دجاج', nameEn: 'Chicken Nuggets', category: 'سناكس', type: 'prepared' as const, costPrice: 15, salePrice: 40, unit: 'طبق', quantity: 40, minQuantityAlert: 10, preparationTime: 12, isActive: true, image: nuggetsImg },
+    { name: 'أصابع الموزاريلا', nameEn: 'Mozzarella Sticks', category: 'سناكس', type: 'prepared' as const, costPrice: 18, salePrice: 50, unit: 'طبق', quantity: 35, minQuantityAlert: 10, preparationTime: 8, isActive: true, image: nuggetsImg },
+    { name: 'سبرنج رول', nameEn: 'Spring Rolls', category: 'سناكس', type: 'prepared' as const, costPrice: 12, salePrice: 35, unit: 'قطعة', quantity: 40, minQuantityAlert: 10, preparationTime: 8, isActive: true, image: nuggetsImg },
   ];
 
   for (const product of products) {

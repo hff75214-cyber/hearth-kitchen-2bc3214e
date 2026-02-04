@@ -111,10 +111,11 @@ export default function Login({ onLogin }: LoginProps) {
         onLogin(newUser);
       } else {
         // Check credentials
-        const user = await db.systemUsers
-          .where('name')
-          .equals(name.trim())
-          .first();
+        // Get all users and find matching one (case-insensitive, trimmed)
+        const allUsers = await db.systemUsers.toArray();
+        const user = allUsers.find(u => 
+          u.name.trim().toLowerCase() === name.trim().toLowerCase()
+        );
         
         if (user && user.password === password) {
           if (!user.isActive) {
