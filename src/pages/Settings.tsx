@@ -161,11 +161,26 @@ export default function Settings() {
     }
     
     try {
+      // Clear all demo data including raw materials and ingredients
       await db.products.clear();
       await db.orders.clear();
       await db.restaurantTables.clear();
       await db.dailySummaries.clear();
-      toast({ title: 'تم الحذف', description: 'تم حذف جميع البيانات' });
+      await db.rawMaterials.clear();
+      await db.productIngredients.clear();
+      await db.categories.clear();
+      await db.customers.clear();
+      await db.loyaltyPrograms.clear();
+      await db.loyaltyRewards.clear();
+      await db.offers.clear();
+      await db.tableReservations.clear();
+      await db.expenses.clear();
+      await db.workShifts.clear();
+      await db.activityLogs.clear();
+      await db.salesGoals.clear();
+      await db.notifications.clear();
+      await db.settings.clear();
+      toast({ title: 'تم الحذف', description: 'تم حذف جميع البيانات بنجاح' });
       loadData();
     } catch (error) {
       toast({ title: 'خطأ', description: 'حدث خطأ أثناء الحذف', variant: 'destructive' });

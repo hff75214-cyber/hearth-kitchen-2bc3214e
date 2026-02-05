@@ -90,14 +90,18 @@ export async function seedDemoData() {
     { name: 'سبرنج رول', nameEn: 'Spring Rolls', category: 'سناكس', type: 'prepared' as const, costPrice: 12, salePrice: 35, unit: 'قطعة', quantity: 40, minQuantityAlert: 10, preparationTime: 8, isActive: true, image: nuggetsImg },
   ];
 
+  // Store product IDs for linking ingredients
+  const productIds: Record<string, number> = {};
+
   for (const product of products) {
-    await db.products.add({
+    const id = await db.products.add({
       ...product,
       sku: generateSKU(),
       barcode: generateBarcode(),
       createdAt: now,
       updatedAt: now,
     });
+    productIds[product.name] = id as number;
   }
 
   // إضافة الطاولات
@@ -145,12 +149,77 @@ export async function seedDemoData() {
     { name: 'ليمون', unit: 'كيلو', quantity: 25, minQuantityAlert: 8, costPerUnit: 20, isActive: true },
   ];
 
+  // Store raw material IDs for linking ingredients
+  const rawMaterialIds: Record<string, number> = {};
+  
   for (const material of rawMaterials) {
-    await db.rawMaterials.add({
+    const id = await db.rawMaterials.add({
       ...material,
       createdAt: now,
       updatedAt: now,
     });
+    rawMaterialIds[material.name] = id as number;
+  }
+
+  // ربط المنتجات بالمواد الخام (المكونات)
+  const productIngredients = [
+    // مشروبات ساخنة
+    { productName: 'شاي', ingredients: [{ rawMaterial: 'شاي', quantity: 0.01 }, { rawMaterial: 'سكر', quantity: 0.02 }] },
+    { productName: 'قهوة تركي', ingredients: [{ rawMaterial: 'قهوة', quantity: 0.015 }, { rawMaterial: 'سكر', quantity: 0.02 }] },
+    { productName: 'نسكافيه', ingredients: [{ rawMaterial: 'قهوة', quantity: 0.01 }, { rawMaterial: 'حليب', quantity: 0.1 }, { rawMaterial: 'سكر', quantity: 0.02 }] },
+    { productName: 'كابتشينو', ingredients: [{ rawMaterial: 'قهوة', quantity: 0.015 }, { rawMaterial: 'حليب', quantity: 0.15 }] },
+    { productName: 'لاتيه', ingredients: [{ rawMaterial: 'قهوة', quantity: 0.015 }, { rawMaterial: 'حليب', quantity: 0.2 }] },
+    
+    // عصائر ومشروبات باردة
+    { productName: 'عصير برتقال', ingredients: [{ rawMaterial: 'برتقال', quantity: 0.3 }, { rawMaterial: 'سكر', quantity: 0.02 }] },
+    { productName: 'عصير مانجو', ingredients: [{ rawMaterial: 'مانجو', quantity: 0.25 }, { rawMaterial: 'سكر', quantity: 0.02 }] },
+    { productName: 'ميلك شيك شوكولاتة', ingredients: [{ rawMaterial: 'حليب', quantity: 0.3 }, { rawMaterial: 'سكر', quantity: 0.03 }] },
+    { productName: 'موهيتو', ingredients: [{ rawMaterial: 'نعناع', quantity: 0.5 }, { rawMaterial: 'ليمون', quantity: 0.1 }, { rawMaterial: 'سكر', quantity: 0.03 }] },
+    { productName: 'سموثي فراولة', ingredients: [{ rawMaterial: 'فراولة', quantity: 0.2 }, { rawMaterial: 'حليب', quantity: 0.2 }] },
+    
+    // وجبات رئيسية
+    { productName: 'كباب مشوي', ingredients: [{ rawMaterial: 'لحم بقري', quantity: 0.3 }, { rawMaterial: 'بصل', quantity: 0.05 }] },
+    { productName: 'فراخ مشوية', ingredients: [{ rawMaterial: 'لحم دجاج', quantity: 0.4 }, { rawMaterial: 'ثوم', quantity: 0.01 }] },
+    { productName: 'سمك مشوي', ingredients: [{ rawMaterial: 'سمك', quantity: 0.35 }, { rawMaterial: 'ليمون', quantity: 0.05 }] },
+    { productName: 'كفتة', ingredients: [{ rawMaterial: 'لحم بقري', quantity: 0.25 }, { rawMaterial: 'بصل', quantity: 0.05 }] },
+    { productName: 'فتة شاورما', ingredients: [{ rawMaterial: 'لحم دجاج', quantity: 0.25 }, { rawMaterial: 'خبز برجر', quantity: 2 }] },
+    { productName: 'ريش ضاني', ingredients: [{ rawMaterial: 'لحم بقري', quantity: 0.4 }] },
+    
+    // وجبات سريعة
+    { productName: 'برجر لحم', ingredients: [{ rawMaterial: 'لحم بقري', quantity: 0.15 }, { rawMaterial: 'خبز برجر', quantity: 1 }, { rawMaterial: 'طماطم', quantity: 0.03 }, { rawMaterial: 'خس', quantity: 0.02 }] },
+    { productName: 'برجر دجاج', ingredients: [{ rawMaterial: 'لحم دجاج', quantity: 0.15 }, { rawMaterial: 'خبز برجر', quantity: 1 }, { rawMaterial: 'طماطم', quantity: 0.03 }] },
+    { productName: 'شاورما لحم', ingredients: [{ rawMaterial: 'لحم بقري', quantity: 0.12 }, { rawMaterial: 'خبز برجر', quantity: 1 }] },
+    { productName: 'شاورما فراخ', ingredients: [{ rawMaterial: 'لحم دجاج', quantity: 0.12 }, { rawMaterial: 'خبز برجر', quantity: 1 }] },
+    { productName: 'بيتزا مارجريتا', ingredients: [{ rawMaterial: 'عجينة بيتزا', quantity: 1 }, { rawMaterial: 'جبنة موزاريلا', quantity: 0.15 }, { rawMaterial: 'طماطم', quantity: 0.1 }] },
+    { productName: 'بيتزا بالخضار', ingredients: [{ rawMaterial: 'عجينة بيتزا', quantity: 1 }, { rawMaterial: 'جبنة موزاريلا', quantity: 0.15 }, { rawMaterial: 'طماطم', quantity: 0.1 }, { rawMaterial: 'بصل', quantity: 0.05 }] },
+    
+    // مقبلات
+    { productName: 'سلطة خضراء', ingredients: [{ rawMaterial: 'خس', quantity: 0.1 }, { rawMaterial: 'خيار', quantity: 0.1 }, { rawMaterial: 'طماطم', quantity: 0.1 }] },
+    { productName: 'حمص', ingredients: [{ rawMaterial: 'زيت طبخ', quantity: 0.02 }, { rawMaterial: 'ثوم', quantity: 0.01 }] },
+    { productName: 'بابا غنوج', ingredients: [{ rawMaterial: 'زيت طبخ', quantity: 0.02 }, { rawMaterial: 'ثوم', quantity: 0.01 }] },
+    { productName: 'فول', ingredients: [{ rawMaterial: 'زيت طبخ', quantity: 0.03 }, { rawMaterial: 'ثوم', quantity: 0.01 }] },
+    { productName: 'طحينة', ingredients: [{ rawMaterial: 'ثوم', quantity: 0.01 }, { rawMaterial: 'ليمون', quantity: 0.02 }] },
+    
+    // سناكس
+    { productName: 'بطاطس مقلية', ingredients: [{ rawMaterial: 'بطاطس', quantity: 0.25 }, { rawMaterial: 'زيت طبخ', quantity: 0.1 }] },
+    { productName: 'ناجتس دجاج', ingredients: [{ rawMaterial: 'لحم دجاج', quantity: 0.15 }, { rawMaterial: 'زيت طبخ', quantity: 0.1 }] },
+    { productName: 'أصابع الموزاريلا', ingredients: [{ rawMaterial: 'جبنة موزاريلا', quantity: 0.1 }, { rawMaterial: 'زيت طبخ', quantity: 0.1 }] },
+  ];
+
+  for (const item of productIngredients) {
+    const productId = productIds[item.productName];
+    if (productId) {
+      for (const ing of item.ingredients) {
+        const rawMaterialId = rawMaterialIds[ing.rawMaterial];
+        if (rawMaterialId) {
+          await db.productIngredients.add({
+            productId,
+            rawMaterialId,
+            quantityUsed: ing.quantity,
+          });
+        }
+      }
+    }
   }
 
   // إضافة العملاء

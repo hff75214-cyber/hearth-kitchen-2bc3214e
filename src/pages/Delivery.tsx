@@ -55,6 +55,26 @@ export default function Delivery() {
       completed: 'تم التسليم',
     };
     
+    // Log sale activity when order is completed
+    if (status === 'completed') {
+      const order = await db.orders.get(orderId);
+      if (order) {
+        const currentUserData = localStorage.getItem('currentUserData');
+        if (currentUserData) {
+          const user = JSON.parse(currentUserData);
+          const { logActivity } = await import('@/lib/database');
+          await logActivity(
+            { id: user.id, name: user.name, role: user.role },
+            'sale',
+            `تم تسليم طلب توصيل #${order.orderNumber}`,
+            { orderType: 'delivery', itemsCount: order.items.length },
+            order.total,
+            orderId
+          );
+        }
+      }
+    }
+    
     toast({ title: 'تم التحديث', description: `حالة الطلب: ${statusLabels[status]}` });
     loadOrders();
   };

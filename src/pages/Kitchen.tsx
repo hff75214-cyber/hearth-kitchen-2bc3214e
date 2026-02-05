@@ -103,10 +103,25 @@ export default function Kitchen() {
   };
 
   const updateOrderStatus = async (orderId: number, status: Order['status']) => {
+    // When marking as "تم التسليم" from kitchen, automatically complete the order
+    const finalStatus = status === 'delivered' ? 'completed' : status;
+    
     await db.orders.update(orderId, { 
-      status,
-      ...(status === 'completed' ? { completedAt: new Date() } : {})
+      status: finalStatus,
+      ...(finalStatus === 'completed' ? { completedAt: new Date() } : {})
     });
+    
+    // Also free up the table if it's a dine-in order
+    if (finalStatus === 'completed') {
+      const order = await db.orders.get(orderId);
+      if (order?.tableId) {
+        await db.restaurantTables.update(order.tableId, { 
+          status: 'available', 
+          currentOrderId: undefined,
+          occupiedAt: undefined 
+        });
+      }
+    }
     
     const statusLabels: Record<string, string> = {
       preparing: 'قيد التحضير',
@@ -124,7 +139,7 @@ export default function Kitchen() {
       });
     }
     
-    toast({ title: 'تم التحديث', description: `حالة الطلب: ${statusLabels[status]}` });
+    toast({ title: 'تم التحديث', description: `حالة الطلب: ${statusLabels[finalStatus]}` });
     loadOrders();
   };
 
@@ -433,7 +448,7 @@ export default function Kitchen() {
                           onClick={() => updateOrderStatus(order.id!, 'completed')}
                         >
                           <CheckCircle className="w-4 h-4 ml-2" />
-                          تم التسليم
+                          اكتمل الطلب
                         </Button>
                       )}
                     </div>
