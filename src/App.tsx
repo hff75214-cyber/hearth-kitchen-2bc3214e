@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { SystemUser, defaultPageByRole, PagePermission } from "@/lib/database";
 import { ReservationNotifications } from "@/components/ReservationNotifications";
+import { DemoDataNotification } from "@/components/DemoDataNotification";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import POS from "./pages/POS";
@@ -107,6 +108,8 @@ const App = () => {
   const [currentUser, setCurrentUser] = useState<SystemUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [showDemoNotification, setShowDemoNotification] = useState(false);
+  const [isFirstLogin, setIsFirstLogin] = useState(false);
 
   useEffect(() => {
     // Check if first visit
@@ -138,6 +141,18 @@ const App = () => {
     localStorage.setItem('currentUserData', JSON.stringify(user));
     setCurrentUser(user);
     setIsLoggedIn(true);
+    
+    // Check if this is first login (show demo data notification)
+    const hasSeenDemoNotification = localStorage.getItem('hasSeenDemoNotification');
+    if (!hasSeenDemoNotification) {
+      setIsFirstLogin(true);
+      setShowDemoNotification(true);
+    }
+  };
+
+  const handleDismissDemoNotification = () => {
+    localStorage.setItem('hasSeenDemoNotification', 'true');
+    setShowDemoNotification(false);
   };
 
   const handleLogout = () => {
@@ -212,6 +227,11 @@ const App = () => {
                 userPermissions={userPermissions}
                 onLogout={handleLogout}
               >
+                {/* Demo Data Notification for first-time users */}
+                {showDemoNotification && (
+                  <DemoDataNotification onDismiss={handleDismissDemoNotification} />
+                )}
+                
                 <Routes>
               {/* Default redirect based on role */}
               <Route path="/" element={
