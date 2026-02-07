@@ -284,16 +284,16 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">لوحة التحكم</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-xl md:text-3xl font-bold text-foreground">لوحة التحكم</h1>
+          <p className="text-sm md:text-base text-muted-foreground mt-1">
             مرحباً بك في نظام كاشير محمد أيمن
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 md:gap-4">
           <div className="flex bg-secondary rounded-lg p-1">
             <Button
               variant={viewMode === 'daily' ? 'default' : 'ghost'}
@@ -312,9 +312,9 @@ export default function Dashboard() {
               شهري
             </Button>
           </div>
-          <div className="text-left">
-            <p className="text-sm text-muted-foreground">التاريخ</p>
-            <p className="font-semibold text-foreground">
+          <div className="text-right sm:text-left">
+            <p className="text-xs md:text-sm text-muted-foreground">التاريخ</p>
+            <p className="text-sm md:text-base font-semibold text-foreground">
               {format(new Date(), 'EEEE، d MMMM yyyy', { locale: ar })}
             </p>
           </div>
@@ -322,7 +322,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
         {statCards.map((stat, index) => (
           <motion.div
             key={stat.title}
@@ -331,20 +331,21 @@ export default function Dashboard() {
             transition={{ delay: index * 0.1 }}
           >
             <Card className="glass shadow-card hover:shadow-glow transition-shadow duration-300">
-              <CardContent className="p-6">
+              <CardContent className="p-3 md:p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold mt-1 text-foreground">{stat.value}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs md:text-sm text-muted-foreground truncate">{stat.title}</p>
+                    <p className="text-lg md:text-2xl font-bold mt-1 text-foreground truncate">{stat.value}</p>
                     {stat.trend && (
-                      <div className={`flex items-center gap-1 mt-2 text-sm ${stat.trendUp ? 'text-success' : 'text-destructive'}`}>
-                        {stat.trendUp ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                        <span>{stat.trend} من أمس</span>
+                      <div className={`flex items-center gap-1 mt-1 md:mt-2 text-xs md:text-sm ${stat.trendUp ? 'text-success' : 'text-destructive'}`}>
+                        {stat.trendUp ? <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4" /> : <ArrowDownRight className="w-3 h-3 md:w-4 md:h-4" />}
+                        <span className="hidden sm:inline">{stat.trend} من أمس</span>
+                        <span className="sm:hidden">{stat.trend}</span>
                       </div>
                     )}
                   </div>
-                  <div className={`p-3 rounded-xl ${stat.color === 'primary' ? 'bg-primary/20' : stat.color === 'success' ? 'bg-success/20' : stat.color === 'info' ? 'bg-info/20' : 'bg-warning/20'}`}>
-                    <stat.icon className={`w-6 h-6 ${stat.color === 'primary' ? 'text-primary' : stat.color === 'success' ? 'text-success' : stat.color === 'info' ? 'text-info' : 'text-warning'}`} />
+                  <div className={`p-2 md:p-3 rounded-xl flex-shrink-0 ${stat.color === 'primary' ? 'bg-primary/20' : stat.color === 'success' ? 'bg-success/20' : stat.color === 'info' ? 'bg-info/20' : 'bg-warning/20'}`}>
+                    <stat.icon className={`w-4 h-4 md:w-6 md:h-6 ${stat.color === 'primary' ? 'text-primary' : stat.color === 'success' ? 'text-success' : stat.color === 'info' ? 'text-info' : 'text-warning'}`} />
                   </div>
                 </div>
               </CardContent>
@@ -374,7 +375,7 @@ export default function Dashboard() {
       )}
 
       {/* Main Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Sales Chart */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -383,14 +384,14 @@ export default function Dashboard() {
           className="lg:col-span-2"
         >
           <Card className="glass shadow-card">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-foreground flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-primary" />
-                {viewMode === 'daily' ? 'المبيعات - آخر 7 أيام' : 'المبيعات الشهرية - آخر 6 أشهر'}
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 md:p-6">
+              <CardTitle className="text-sm md:text-base text-foreground flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                {viewMode === 'daily' ? 'المبيعات - آخر 7 أيام' : 'المبيعات الشهرية'}
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
+            <CardContent className="p-2 md:p-6">
+              <div className="h-[200px] md:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   {viewMode === 'daily' ? (
                     <AreaChart data={salesData}>
