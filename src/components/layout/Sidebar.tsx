@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PagePermission } from '@/lib/database';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MenuItem {
   path: string;
@@ -75,11 +76,13 @@ const allMenuItems: MenuItem[] = [
 interface SidebarProps {
   onWidthChange?: (width: number) => void;
   userPermissions?: PagePermission[];
+  onNavigate?: () => void;
 }
 
-export function Sidebar({ onWidthChange, userPermissions = [] }: SidebarProps) {
+export function Sidebar({ onWidthChange, userPermissions = [], onNavigate }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   // Filter menu items based on user permissions
   const menuItems = allMenuItems.filter(item => 
@@ -87,20 +90,34 @@ export function Sidebar({ onWidthChange, userPermissions = [] }: SidebarProps) {
   );
 
   useEffect(() => {
-    onWidthChange?.(collapsed ? 80 : 260);
-  }, [collapsed, onWidthChange]);
+    // On mobile, always use full width when visible
+    if (isMobile) {
+      onWidthChange?.(280);
+    } else {
+      onWidthChange?.(collapsed ? 80 : 260);
+    }
+  }, [collapsed, onWidthChange, isMobile]);
+
+  const handleLinkClick = () => {
+    if (isMobile && onNavigate) {
+      onNavigate();
+    }
+  };
 
   return (
     <motion.aside
       initial={false}
-      animate={{ width: collapsed ? 80 : 260 }}
+      animate={{ width: isMobile ? 280 : (collapsed ? 80 : 260) }}
       transition={{ duration: 0.3, ease: 'easeInOut' }}
-      className="fixed right-0 top-0 h-screen bg-sidebar border-l border-sidebar-border z-50 flex flex-col shadow-card"
+      className={cn(
+        "fixed right-0 top-0 h-screen bg-sidebar border-l border-sidebar-border z-50 flex flex-col shadow-card",
+        isMobile && "shadow-2xl"
+      )}
     >
       {/* Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
         <AnimatePresence mode="wait">
-          {!collapsed && (
+          {(!collapsed || isMobile) && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -110,17 +127,19 @@ export function Sidebar({ onWidthChange, userPermissions = [] }: SidebarProps) {
               <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-glow">
                 <UtensilsCrossed className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="font-bold text-lg text-foreground">كاشير محمد أيمن</span>
+              <span className="font-bold text-base md:text-lg text-foreground">كاشير محمد أيمن</span>
             </motion.div>
           )}
         </AnimatePresence>
         
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="p-2 rounded-lg hover:bg-sidebar-accent transition-colors text-muted-foreground hover:text-foreground"
-        >
-          {collapsed ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-        </button>
+        {!isMobile && (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="p-2 rounded-lg hover:bg-sidebar-accent transition-colors text-muted-foreground hover:text-foreground"
+          >
+            {collapsed ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -132,6 +151,7 @@ export function Sidebar({ onWidthChange, userPermissions = [] }: SidebarProps) {
               <li key={item.path}>
                 <Link
                   to={item.path}
+                  onClick={handleLinkClick}
                   className={cn(
                     'flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200',
                     'hover:bg-sidebar-accent group relative',
@@ -149,13 +169,13 @@ export function Sidebar({ onWidthChange, userPermissions = [] }: SidebarProps) {
                     isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
                   )} />
                   <AnimatePresence mode="wait">
-                    {!collapsed && (
+                    {(!collapsed || isMobile) && (
                       <motion.span
                         initial={{ opacity: 0, width: 0 }}
                         animate={{ opacity: 1, width: 'auto' }}
                         exit={{ opacity: 0, width: 0 }}
                         className={cn(
-                          'font-medium whitespace-nowrap overflow-hidden',
+                          'font-medium whitespace-nowrap overflow-hidden text-sm md:text-base',
                           isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
                         )}
                       >
@@ -173,7 +193,7 @@ export function Sidebar({ onWidthChange, userPermissions = [] }: SidebarProps) {
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border">
         <AnimatePresence mode="wait">
-          {!collapsed && (
+          {(!collapsed || isMobile) && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
