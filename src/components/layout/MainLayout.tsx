@@ -66,7 +66,7 @@ export function MainLayout({ children, userName, userRole, userPermissions = [],
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
           )}
-          <span className="text-xs md:text-sm text-muted-foreground hidden sm:inline">نظام كاشير محمد أيمن</span>
+          <span className="text-xs md:text-sm text-muted-foreground hidden sm:inline font-semibold">رقميات</span>
         </div>
         <div className="flex items-center gap-2 md:gap-3">
           <NotificationSystem />
