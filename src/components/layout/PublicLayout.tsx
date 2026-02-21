@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { POSLogo } from '../POSLogo';
 
 interface PublicLayoutProps {
   children: ReactNode;
@@ -23,15 +24,15 @@ export function PublicLayout({ children, title, description }: PublicLayoutProps
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <motion.div 
-              className="flex flex-col"
+              className="flex items-center gap-2"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                رقميات
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground">قائمة المنتجات</p>
+              <POSLogo size="small" />
+              <div className="flex flex-col hidden sm:block">
+                <p className="text-xs text-muted-foreground">قائمة المنتجات</p>
+              </div>
             </motion.div>
 
             {/* Optional: Add language toggle here */}
@@ -74,9 +75,9 @@ export function PublicLayout({ children, title, description }: PublicLayoutProps
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <h3 className="text-lg font-bold text-orange-600">رقميات</h3>
+              <h3 className="text-lg font-bold text-blue-600">POS System</h3>
               <p className="text-sm text-muted-foreground mt-2">
-                تطبيق متكامل لإدارة المطاعم والمقاهي
+                نظام متكامل لإدارة المتاجر والمطاعم والمبيعات
               </p>
             </div>
             <div className="text-sm text-muted-foreground text-right md:text-left">

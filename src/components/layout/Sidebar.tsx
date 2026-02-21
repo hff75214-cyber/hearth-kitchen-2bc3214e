@@ -34,6 +34,7 @@ import {
 import { cn } from '@/lib/utils';
 import { PagePermission } from '@/lib/database';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { POSLogo } from '../POSLogo';
 
 interface MenuItem {
   path: string;
@@ -122,12 +123,9 @@ export function Sidebar({ onWidthChange, userPermissions = [], onNavigate }: Sid
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex items-center gap-3"
+              className="flex items-center gap-2"
             >
-              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-glow">
-                <UtensilsCrossed className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="font-bold text-base md:text-lg text-foreground">كاشير محمد أيمن</span>
+              <POSLogo size="small" />
             </motion.div>
           )}
         </AnimatePresence>
