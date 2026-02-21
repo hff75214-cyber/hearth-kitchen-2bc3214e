@@ -27,11 +27,13 @@ export default function PublicMenu() {
     try {
       setIsLoading(true);
       const [productsData, categoriesData] = await Promise.all([
-        db.products.where('isActive').equals(true).toArray(),
+        db.products.toArray(),
         db.categories.toArray(),
       ]);
-      setProducts(productsData);
-      setCategories(categoriesData);
+      // Filter only active products
+      const activeProducts = productsData.filter(p => p.isActive);
+      setProducts(activeProducts);
+      setCategories(categoriesData.filter(c => c.isActive));
     } catch (error) {
       console.error('[v0] Error loading menu data:', error);
     } finally {
@@ -42,9 +44,14 @@ export default function PublicMenu() {
   // Filter products
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
-      // Search filter
-      if (searchQuery && !product.name.includes(searchQuery) && !product.description?.includes(searchQuery)) {
-        return false;
+      // Search filter - case insensitive
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesName = product.name.toLowerCase().includes(query);
+        const matchesDescription = product.description?.toLowerCase().includes(query);
+        if (!matchesName && !matchesDescription) {
+          return false;
+        }
       }
 
       // Category filter
