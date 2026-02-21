@@ -225,7 +225,7 @@ export async function seedDemoData() {
   // إضافة العملاء
   const customers = [
     { name: 'أحمد محمد', phone: '01012345678', address: 'شارع التحرير، القاهرة' },
-    { name: 'محمود علي', phone: '01123456789', address: 'شارع الهرم، الجيزة' },
+    { name: 'محمود ��لي', phone: '01123456789', address: 'شارع الهرم، الجيزة' },
     { name: 'سارة أحمد', phone: '01234567890', address: 'المعادي، القاهرة' },
     { name: 'فاطمة حسن', phone: '01098765432', address: 'مدينة نصر، القاهرة' },
     { name: 'خالد إبراهيم', phone: '01111111111', address: 'الدقي، الجيزة' },
@@ -486,8 +486,8 @@ export async function seedDemoData() {
 
   // إضافة إعدادات المطعم
   await db.settings.add({
-    restaurantName: 'مطعم محمد أيمن',
-    restaurantNameEn: 'Mohamed Ayman Restaurant',
+    restaurantName: 'POS System',
+    restaurantNameEn: 'POS System',
     phone: '01012345678',
     address: 'شارع التحرير، القاهرة، مصر',
     taxRate: 14,

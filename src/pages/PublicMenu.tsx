@@ -6,8 +6,10 @@ import { MenuProductCard } from '@/components/MenuProductCard';
 import { MenuFilters } from '@/components/MenuFilters';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function PublicMenu() {
+  const { currentCurrency, formatCurrentPrice } = useCurrency();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -148,7 +150,7 @@ export default function PublicMenu() {
 
               <motion.div
                 layout
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
+                className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-5 lg:gap-6"
               >
                 <AnimatePresence mode="popLayout">
                   {filteredProducts.map((product, index) => (
@@ -156,6 +158,8 @@ export default function PublicMenu() {
                       key={product.id}
                       product={product}
                       index={index}
+                      currency={currentCurrency}
+                      formatPrice={formatCurrentPrice}
                     />
                   ))}
                 </AnimatePresence>

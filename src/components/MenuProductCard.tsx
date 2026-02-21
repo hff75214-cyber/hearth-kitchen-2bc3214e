@@ -3,14 +3,17 @@ import { Product } from '@/lib/database';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
+import { CurrencyCode } from '@/lib/currencies';
 
 interface MenuProductCardProps {
   product: Product;
   index?: number;
   onClick?: () => void;
+  currency?: CurrencyCode;
+  formatPrice?: (amount: number) => string;
 }
 
-export function MenuProductCard({ product, index = 0, onClick }: MenuProductCardProps) {
+export function MenuProductCard({ product, index = 0, onClick, currency = 'EGP', formatPrice }: MenuProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   const containerVariants = {
@@ -47,9 +50,9 @@ export function MenuProductCard({ product, index = 0, onClick }: MenuProductCard
       onClick={onClick}
       className="h-full cursor-pointer group"
     >
-      <Card className="overflow-hidden h-full bg-white dark:bg-slate-800 shadow-sm hover:shadow-xl border-orange-100 dark:border-orange-900/20 transition-all">
+      <Card className="overflow-hidden h-full bg-white dark:bg-slate-800 shadow-sm hover:shadow-xl border-orange-100 dark:border-orange-900/20 transition-all flex flex-col">
         {/* Image Container */}
-        <div className="relative w-full h-48 sm:h-56 bg-gradient-to-b from-slate-100 to-slate-50 dark:from-slate-700 dark:to-slate-800 overflow-hidden">
+        <div className="relative w-full h-32 sm:h-40 md:h-48 lg:h-56 bg-gradient-to-b from-slate-100 to-slate-50 dark:from-slate-700 dark:to-slate-800 overflow-hidden flex-shrink-0">
           {product.image ? (
             <motion.img
               variants={imageVariants}
@@ -97,41 +100,41 @@ export function MenuProductCard({ product, index = 0, onClick }: MenuProductCard
         </div>
 
         {/* Content */}
-        <CardContent className="p-3 sm:p-4">
-          <div className="space-y-2">
+        <CardContent className="p-2 sm:p-3 md:p-4 flex-grow flex flex-col">
+          <div className="space-y-1.5 flex-grow">
             {/* Product Name */}
-            <h3 className="font-bold text-sm sm:text-base text-foreground line-clamp-2">
+            <h3 className="font-bold text-xs sm:text-sm md:text-base text-foreground line-clamp-2">
               {product.name}
             </h3>
 
             {/* Description */}
             {product.description && (
-              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
+              <p className="text-xs text-muted-foreground line-clamp-1 hidden sm:block">
                 {product.description}
               </p>
             )}
 
             {/* Price and Info */}
-            <div className="flex items-end justify-between pt-2 border-t border-orange-100 dark:border-orange-900/20">
+            <div className="flex items-end justify-between gap-1 pt-1.5 border-t border-orange-100 dark:border-orange-900/20 mt-auto">
               <div>
-                <p className="text-xs text-muted-foreground">السعر</p>
-                <p className="text-lg sm:text-xl font-bold text-orange-600 dark:text-orange-500">
-                  {product.salePrice.toFixed(2)}
+                <p className="text-xs text-muted-foreground hidden sm:block">السعر</p>
+                <p className="text-base sm:text-lg font-bold text-orange-600 dark:text-orange-500">
+                  {formatPrice ? formatPrice(product.salePrice) : `${product.salePrice.toFixed(0)} ₊.‎`}
                 </p>
               </div>
               {product.preparationTime && product.type === 'prepared' && (
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">وقت التحضير</p>
-                  <p className="text-xs font-medium text-foreground">
-                    {product.preparationTime} دقيقة
+                <div className="text-right text-xs">
+                  <p className="text-muted-foreground hidden sm:block">وقت</p>
+                  <p className="font-medium text-foreground">
+                    {product.preparationTime}د
                   </p>
                 </div>
               )}
             </div>
 
             {/* Stock indicator */}
-            <div className="flex items-center gap-1 pt-2">
-              <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div className="flex items-center gap-1 pt-1">
+              <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                 <motion.div
                   className="h-full bg-gradient-to-r from-orange-500 to-red-500"
                   initial={{ width: 0 }}
@@ -139,8 +142,8 @@ export function MenuProductCard({ product, index = 0, onClick }: MenuProductCard
                   transition={{ duration: 0.6, delay: 0.2 }}
                 />
               </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                {product.quantity} {product.unit}
+              <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
+                {product.quantity}
               </span>
             </div>
           </div>
