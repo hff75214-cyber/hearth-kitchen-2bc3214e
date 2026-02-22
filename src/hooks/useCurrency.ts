@@ -12,7 +12,8 @@ export function useCurrency() {
     const loadCurrency = async () => {
       try {
         setIsLoading(true);
-        const settings = await db.settings.toCollection().first();
+        const settingsArray = await db.settings.toArray();
+        const settings = settingsArray.length > 0 ? settingsArray[0] : null;
         if (settings && settings.currency) {
           // محاولة تحويل العملة المحفوظة إلى CurrencyCode
           const currencyCode = (settings.currency as unknown as CurrencyCode);
@@ -36,9 +37,9 @@ export function useCurrency() {
       setCurrentCurrency(newCurrency);
       
       // حفظ في الإعدادات
-      const settings = await db.settings.toCollection().first();
-      if (settings && settings.id) {
-        await db.settings.update(settings.id, { currency: newCurrency });
+      const settingsArray = await db.settings.toArray();
+      if (settingsArray.length > 0 && settingsArray[0].id) {
+        await db.settings.update(settingsArray[0].id, { currency: newCurrency });
       }
     } catch (error) {
       console.error('[v0] Error changing currency:', error);

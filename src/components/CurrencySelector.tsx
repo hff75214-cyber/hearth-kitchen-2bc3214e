@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCurrency } from '@/hooks/useCurrency';
-import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
-import { Button } from '@/components/ui/button';
+import { SUPPORTED_CURRENCIES, CurrencyCode } from '@/lib/currencies';
 import {
   Select,
   SelectContent,
@@ -12,7 +11,11 @@ import {
 import { Globe } from 'lucide-react';
 
 export function CurrencySelector() {
-  const { currentCurrency, changeCurrency, getCurrencyName } = useCurrency();
+  const { currentCurrency, changeCurrency } = useCurrency();
+
+  const handleCurrencyChange = (value: string) => {
+    changeCurrency(value as CurrencyCode);
+  };
 
   return (
     <motion.div
@@ -21,7 +24,7 @@ export function CurrencySelector() {
       exit={{ opacity: 0, scale: 0.9 }}
       className="flex items-center gap-2"
     >
-      <Select value={currentCurrency} onValueChange={(value) => changeCurrency(value as any)}>
+      <Select value={currentCurrency} onValueChange={handleCurrencyChange}>
         <SelectTrigger className="w-[200px]">
           <div className="flex items-center gap-2">
             <Globe className="w-4 h-4" />

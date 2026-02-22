@@ -12,7 +12,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 export default function ProductDetails() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
-  const { currentCurrency, formatCurrentPrice, getCurrencySymbol } = useCurrency();
+  const { formatCurrentPrice } = useCurrency();
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -161,9 +161,6 @@ export default function ProductDetails() {
                   <span className="text-4xl font-bold text-orange-600 dark:text-orange-500">
                     {formatCurrentPrice(product.salePrice)}
                   </span>
-                  <span className="text-muted-foreground text-lg">
-                    {getCurrencySymbol(currentCurrency)}
-                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -195,7 +192,7 @@ export default function ProductDetails() {
                 <Info className="w-5 h-5 text-green-500" />
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">سعر التكلفة</p>
-                  <p className="font-bold text-foreground">{product.costPrice.toFixed(2)} {getCurrencySymbol(currentCurrency)}</p>
+                  <p className="font-bold text-foreground">{product.costPrice.toFixed(2)}</p>
                 </div>
               </div>
             </div>
