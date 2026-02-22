@@ -463,7 +463,7 @@ export default function POS() {
     }
   };
 
-  const printReceipt = () => {
+  const printReceipt = async () => {
     if (receiptContent) {
       try {
         const orderData = JSON.parse(receiptContent);
@@ -471,8 +471,8 @@ export default function POS() {
           ...orderData,
           createdAt: new Date(orderData.createdAt),
         };
-        // Print A5 professional invoice
-        printA5Invoice(order, settings || undefined);
+        // Print A5 professional invoice with QR code
+        await printA5Invoice(order, settings || undefined);
       } catch (error) {
         console.error('Error printing receipt:', error);
       }

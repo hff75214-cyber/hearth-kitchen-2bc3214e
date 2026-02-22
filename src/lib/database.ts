@@ -18,6 +18,7 @@ export interface Product {
   barcode?: string;
   description?: string;
   image?: string;
+  ingredients?: string[]; // المكونات الأساسية
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
