@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { POSLogo } from '../POSLogo';
-import { BottomNavigation } from './BottomNavigation';
+import { BottomNavigation } from '../BottomNavigation';
 
 interface PublicLayoutProps {
   children: ReactNode;
