@@ -16,6 +16,7 @@ import {
   Moon,
   Monitor,
   ExternalLink,
+  Globe,
 } from 'lucide-react';
 import { db, Settings as SettingsType, Category } from '@/lib/database';
 import { exportDatabase, importDatabase, downloadBackup, validateBackup } from '@/lib/databaseExport';
@@ -40,6 +41,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { InstallAppButton } from '@/components/InstallAppButton';
+import { CurrencySelector } from '@/components/CurrencySelector';
 
 export default function Settings() {
   const [settings, setSettings] = useState<SettingsType>({
@@ -290,25 +292,25 @@ export default function Settings() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-foreground">نسبة الضريبة %</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={settings.taxRate}
-                    onChange={(e) => setSettings({ ...settings, taxRate: parseFloat(e.target.value) || 0 })}
-                    className="bg-secondary border-border"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-foreground">العملة</Label>
-                  <Input
-                    value={settings.currency}
-                    onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
-                    className="bg-secondary border-border"
-                  />
+              <div className="space-y-2">
+                <Label className="text-foreground">نسبة الضريبة %</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={settings.taxRate}
+                  onChange={(e) => setSettings({ ...settings, taxRate: parseFloat(e.target.value) || 0 })}
+                  className="bg-secondary border-border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-foreground flex items-center gap-2">
+                  <Globe className="w-4 h-4" />
+                  اختر العملة
+                </Label>
+                <div className="bg-secondary border border-border rounded-lg p-3">
+                  <CurrencySelector />
                 </div>
               </div>
 

@@ -39,6 +39,9 @@ import Suppliers from "./pages/Suppliers";
 import CustomerDisplay from "./pages/CustomerDisplay";
 import Welcome from "./pages/Welcome";
 import About from "./pages/About";
+import PublicMenu from "./pages/PublicMenu";
+import MenuCategory from "./pages/MenuCategory";
+import ProductDetails from "./pages/ProductDetails";
 
 const queryClient = new QueryClient();
 
@@ -216,6 +219,11 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Public Menu Routes - No login required */}
+            <Route path="/menu" element={<PublicMenu />} />
+            <Route path="/menu/:categoryName" element={<MenuCategory />} />
+            <Route path="/product/:productId" element={<ProductDetails />} />
+            
             {/* Customer Display - Public route without layout */}
             <Route path="/customer-display" element={<CustomerDisplay />} />
             

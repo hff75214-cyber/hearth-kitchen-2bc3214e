@@ -757,8 +757,8 @@ export async function initializeDefaultData() {
   const settingsCount = await db.settings.count();
   if (settingsCount === 0) {
     await db.settings.add({
-      restaurantName: 'مطعمي',
-      restaurantNameEn: 'My Restaurant',
+  restaurantName: 'POS System',
+  restaurantNameEn: 'POS System',
       taxRate: 0,
       currency: 'ج.م',
     });

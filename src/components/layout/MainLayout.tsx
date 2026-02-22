@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { LogOut, User, Shield, Menu, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { POSLogo } from '../POSLogo';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -66,7 +67,7 @@ export function MainLayout({ children, userName, userRole, userPermissions = [],
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
           )}
-          <span className="text-xs md:text-sm text-muted-foreground hidden sm:inline">نظام كاشير محمد أيمن</span>
+          <POSLogo size="small" className="hidden sm:block" />
         </div>
         <div className="flex items-center gap-2 md:gap-3">
           <NotificationSystem />
