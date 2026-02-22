@@ -21,9 +21,9 @@ export function PublicMenuSearchBar({ searchQuery, onSearchChange }: PublicMenuS
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -10 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="sticky top-20 z-30 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-orange-100 dark:border-orange-900/20 py-3"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-t border-orange-100 dark:border-orange-900/20 py-3 md:py-4"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2 md:gap-4">

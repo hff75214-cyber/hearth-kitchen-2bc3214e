@@ -1,21 +1,10 @@
 import { Order, Settings } from './database';
 
-// Generate QR code for menu link
+// Generate QR code for menu link - will be replaced with real QR code data
 const generateQRCodeSVG = (menuUrl: string): string => {
-  // Simple QR code using qrcode.js pattern - we'll create a simple version
-  // In production, you'd use a library like qrcode.js
-  return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-      <!-- This is a placeholder. In production, use qrcode library -->
-      <!-- For now, we'll generate a data URL that points to the menu -->
-      <rect width="100" height="100" fill="white"/>
-      <rect x="5" y="5" width="20" height="20" fill="black"/>
-      <rect x="75" y="5" width="20" height="20" fill="black"/>
-      <rect x="5" y="75" width="20" height="20" fill="black"/>
-      <text x="50" y="50" text-anchor="middle" font-family="monospace" font-size="6" fill="black">Menu QR</text>
-      <title>${menuUrl}</title>
-    </svg>
-  `;
+  // Placeholder - QR code will be generated asynchronously using qrcode library
+  // The data URL will be generated when the invoice is created
+  return `<img id="qrcode-placeholder" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='white'/%3E%3C/svg%3E" alt="QR Code" />`;
 };
 
 // Generate barcode SVG for order number
@@ -627,9 +616,18 @@ export const generateA5Invoice = (
 `;
 };
 
-// Print A5 invoice
-export const printA5Invoice = (order: Order, settings?: Settings): void => {
-  const invoiceHtml = generateA5Invoice(order, settings);
+// Print A5 invoice with QR code
+export const printA5Invoice = async (order: Order, settings?: Settings): Promise<void> => {
+  const { generateQRCodeDataUrl } = await import('./qrcodeGenerator');
+  
+  let invoiceHtml = generateA5Invoice(order, settings);
+  
+  // Generate real QR code and replace placeholder
+  const qrCodeDataUrl = await generateQRCodeDataUrl(window.location.origin + '/menu');
+  invoiceHtml = invoiceHtml.replace(
+    /<img id="qrcode-placeholder"[^>]*>/,
+    `<img src="${qrCodeDataUrl}" alt="QR Code" style="max-width: 100px; height: auto;" />`
+  );
   
   const printWindow = window.open('', '_blank', 'width=560,height=800');
   if (printWindow) {

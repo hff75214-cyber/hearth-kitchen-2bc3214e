@@ -447,6 +447,66 @@ export default function Settings() {
           </Card>
         </motion.div>
 
+        {/* Share Menu Link */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+          <Card className="glass shadow-card">
+            <CardHeader>
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <ExternalLink className="w-5 h-5 text-blue-500" />
+                شارك قائمة المنتجات
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                شارك هذا الرابط مع عملائك للدخول المباشر لقائمة المنتجات بدون تسجيل حساب
+              </p>
+              
+              <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/30 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-blue-500" />
+                  <span className="text-sm font-medium text-blue-900 dark:text-blue-100">رابط القائمة العام</span>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={`${window.location.origin}/menu`}
+                    className="flex-1 bg-white dark:bg-slate-800 border-blue-200 dark:border-blue-900 text-sm font-mono"
+                  />
+                  <Button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/menu`);
+                      toast({
+                        title: 'تم النسخ!',
+                        description: 'تم نسخ رابط القائمة بنجاح',
+                        variant: 'default',
+                      });
+                    }}
+                    className="bg-blue-500 hover:bg-blue-600 text-white"
+                  >
+                    نسخ الرابط
+                  </Button>
+                </div>
+
+                <p className="text-xs text-blue-800 dark:text-blue-200">
+                  ℹ️ هذا الرابط آمن تماماً ولا يتطلب أي بيانات حساسة. الجميع يستطيع مشاهدة المنتجات من خلاله.
+                </p>
+              </div>
+
+              {/* Open Graph Preview */}
+              <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800 border border-border">
+                <p className="text-sm font-medium text-foreground mb-3">معاينة عند المشاركة:</p>
+                <div className="space-y-2">
+                  <div className="text-xs text-muted-foreground">العنوان:</div>
+                  <p className="font-medium text-sm">POS System - قائمة المنتجات</p>
+                  <div className="text-xs text-muted-foreground mt-2">الوصف:</div>
+                  <p className="text-sm text-muted-foreground">استكشف قائمة المنتجات الخاصة بنا وشاهد جميع التفاصيل</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {/* Backup & Restore */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="glass shadow-card">

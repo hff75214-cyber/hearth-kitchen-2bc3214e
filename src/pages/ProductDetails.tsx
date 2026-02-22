@@ -187,24 +187,31 @@ export default function ProductDetails() {
                 </div>
               )}
 
-              {/* Cost Price */}
-              <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                <Info className="w-5 h-5 text-green-500" />
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">سعر التكلفة</p>
-                  <p className="font-bold text-foreground">{product.costPrice.toFixed(2)}</p>
+              {/* Min Quantity Alert */}
+              {product.minQuantityAlert && (
+                <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-900/30">
+                  <AlertCircle className="w-5 h-5 text-amber-600" />
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">الحد الأدنى للتنبيه</p>
+                    <p className="font-bold text-foreground">{product.minQuantityAlert} {product.unit}</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Profit Info */}
-            {product.salePrice > product.costPrice && (
-              <Card className="bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-900/30 mb-6">
+            {/* Ingredients Section */}
+            {product.ingredients && product.ingredients.length > 0 && (
+              <Card className="bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30 mb-6">
                 <CardContent className="p-4">
-                  <p className="text-sm text-green-700 dark:text-green-400">هامش الربح</p>
-                  <p className="text-xl font-bold text-green-700 dark:text-green-400">
-                    {((product.salePrice - product.costPrice) / product.costPrice * 100).toFixed(1)}%
-                  </p>
+                  <h3 className="text-sm font-bold text-blue-700 dark:text-blue-400 mb-3">المكونات الأساسية:</h3>
+                  <div className="space-y-2">
+                    {product.ingredients.map((ingredient, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm">
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                        <span className="text-foreground">{ingredient}</span>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             )}
