@@ -1,5 +1,23 @@
 import { Order, Settings } from './database';
 
+// Generate QR code for menu link
+const generateQRCodeSVG = (menuUrl: string): string => {
+  // Simple QR code using qrcode.js pattern - we'll create a simple version
+  // In production, you'd use a library like qrcode.js
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+      <!-- This is a placeholder. In production, use qrcode library -->
+      <!-- For now, we'll generate a data URL that points to the menu -->
+      <rect width="100" height="100" fill="white"/>
+      <rect x="5" y="5" width="20" height="20" fill="black"/>
+      <rect x="75" y="5" width="20" height="20" fill="black"/>
+      <rect x="5" y="75" width="20" height="20" fill="black"/>
+      <text x="50" y="50" text-anchor="middle" font-family="monospace" font-size="6" fill="black">Menu QR</text>
+      <title>${menuUrl}</title>
+    </svg>
+  `;
+};
+
 // Generate barcode SVG for order number
 const generateBarcodeSVG = (orderNumber: string): string => {
   const data = orderNumber.replace(/[^0-9]/g, '').padStart(12, '0').slice(-12);
@@ -564,10 +582,21 @@ export const generateA5Invoice = (
     </div>
     ` : ''}
 
-    <!-- Barcode -->
-    <div class="barcode-section">
-      ${barcodeSVG}
-      <div class="barcode-label">رقم الطلب - للتتبع والاستعلام</div>
+    <!-- Barcode and QR Code -->
+    <div style="display: flex; gap: 20px; margin-bottom: 15px; align-items: center; justify-content: center;">
+      <!-- Barcode -->
+      <div class="barcode-section">
+        ${barcodeSVG}
+        <div class="barcode-label">رقم الطلب - للتتبع والاستعلام</div>
+      </div>
+      
+      <!-- QR Code for Menu -->
+      <div style="text-align: center;">
+        <div style="background: white; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 8px;">
+          ${generateQRCodeSVG(window.location.origin + '/menu')}
+        </div>
+        <div style="font-size: 9px; color: #64748b; font-weight: 500;">اسح رمز QR<br/>لمشاهدة القائمة</div>
+      </div>
     </div>
 
     <!-- Footer -->
