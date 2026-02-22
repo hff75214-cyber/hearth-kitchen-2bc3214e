@@ -1,13 +1,14 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { POSLogo } from '../POSLogo';
-import { BottomNavigation } from '../BottomNavigation';
+import { PublicMenuSearchBar } from '../PublicMenuSearchBar';
 
 interface PublicLayoutProps {
   children: ReactNode;
   title?: string;
   description?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 export function PublicLayout({ children, title, description }: PublicLayoutProps) {
@@ -58,16 +59,13 @@ export function PublicLayout({ children, title, description }: PublicLayoutProps
 
       {/* Main content */}
       <motion.main 
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pb-24 md:pb-8"
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pb-28 md:pb-12"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
         {children}
       </motion.main>
-
-      {/* Bottom Navigation for mobile */}
-      <BottomNavigation />
 
       {/* Footer */}
       <motion.footer 
@@ -90,6 +88,9 @@ export function PublicLayout({ children, title, description }: PublicLayoutProps
           </div>
         </div>
       </motion.footer>
+
+      {/* Bottom Search Bar - Fixed Position */}
+      <PublicMenuSearchBar searchQuery="" onSearchChange={() => {}} />
     </div>
   );
 }

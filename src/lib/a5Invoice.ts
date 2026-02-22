@@ -1,5 +1,12 @@
 import { Order, Settings } from './database';
 
+// Generate QR code for menu link - will be replaced with real QR code data
+const generateQRCodeSVG = (menuUrl: string): string => {
+  // Placeholder - QR code will be generated asynchronously using qrcode library
+  // The data URL will be generated when the invoice is created
+  return `<img id="qrcode-placeholder" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='white'/%3E%3C/svg%3E" alt="QR Code" />`;
+};
+
 // Generate barcode SVG for order number
 const generateBarcodeSVG = (orderNumber: string): string => {
   const data = orderNumber.replace(/[^0-9]/g, '').padStart(12, '0').slice(-12);
@@ -564,10 +571,21 @@ export const generateA5Invoice = (
     </div>
     ` : ''}
 
-    <!-- Barcode -->
-    <div class="barcode-section">
-      ${barcodeSVG}
-      <div class="barcode-label">رقم الطلب - للتتبع والاستعلام</div>
+    <!-- Barcode and QR Code -->
+    <div style="display: flex; gap: 20px; margin-bottom: 15px; align-items: center; justify-content: center;">
+      <!-- Barcode -->
+      <div class="barcode-section">
+        ${barcodeSVG}
+        <div class="barcode-label">رقم الطلب - للتتبع والاستعلام</div>
+      </div>
+      
+      <!-- QR Code for Menu -->
+      <div style="text-align: center;">
+        <div style="background: white; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 8px;">
+          ${generateQRCodeSVG(window.location.origin + '/menu')}
+        </div>
+        <div style="font-size: 9px; color: #64748b; font-weight: 500;">اسح رمز QR<br/>لمشاهدة القائمة</div>
+      </div>
     </div>
 
     <!-- Footer -->
@@ -598,9 +616,18 @@ export const generateA5Invoice = (
 `;
 };
 
-// Print A5 invoice
-export const printA5Invoice = (order: Order, settings?: Settings): void => {
-  const invoiceHtml = generateA5Invoice(order, settings);
+// Print A5 invoice with QR code
+export const printA5Invoice = async (order: Order, settings?: Settings): Promise<void> => {
+  const { generateQRCodeDataUrl } = await import('./qrcodeGenerator');
+  
+  let invoiceHtml = generateA5Invoice(order, settings);
+  
+  // Generate real QR code and replace placeholder
+  const qrCodeDataUrl = await generateQRCodeDataUrl(window.location.origin + '/menu');
+  invoiceHtml = invoiceHtml.replace(
+    /<img id="qrcode-placeholder"[^>]*>/,
+    `<img src="${qrCodeDataUrl}" alt="QR Code" style="max-width: 100px; height: auto;" />`
+  );
   
   const printWindow = window.open('', '_blank', 'width=560,height=800');
   if (printWindow) {

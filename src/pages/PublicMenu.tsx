@@ -4,6 +4,7 @@ import { db, Product, Category } from '@/lib/database';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { MenuProductCard } from '@/components/MenuProductCard';
 import { MenuFilters } from '@/components/MenuFilters';
+import { PublicMenuSearchBar } from '@/components/PublicMenuSearchBar';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -76,8 +77,10 @@ export default function PublicMenu() {
   }, [products, searchQuery, selectedCategory, selectedType, priceRange]);
 
   return (
-    <PublicLayout title="قائمة المنتجات" description="استكشف منتجاتنا المتميزة">
-      <div className="space-y-8">
+    <>
+      <PublicMenuSearchBar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+      <PublicLayout title="قائمة المنتجات" description="استكشف منتجاتنا المتميزة">
+        <div className="space-y-8">
         {/* Filters Section */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
@@ -184,7 +187,8 @@ export default function PublicMenu() {
             </ul>
           </motion.section>
         )}
-      </div>
-    </PublicLayout>
+        </div>
+      </PublicLayout>
+    </>
   );
 }
