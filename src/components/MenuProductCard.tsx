@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { CurrencyCode } from '@/lib/currencies';
+import { useNavigate } from 'react-router-dom';
 
 interface MenuProductCardProps {
   product: Product;
@@ -14,7 +15,16 @@ interface MenuProductCardProps {
 }
 
 export function MenuProductCard({ product, index = 0, onClick, currency = 'EGP', formatPrice }: MenuProductCardProps) {
+  const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
+
+  const handleCardClick = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      navigate(`/product/${product.id}`);
+    }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -47,7 +57,7 @@ export function MenuProductCard({ product, index = 0, onClick, currency = 'EGP',
       whileHover="hover"
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
-      onClick={onClick}
+      onClick={handleCardClick}
       className="h-full cursor-pointer group"
     >
       <Card className="overflow-hidden h-full bg-white dark:bg-slate-800 shadow-sm hover:shadow-xl border-orange-100 dark:border-orange-900/20 transition-all flex flex-col">

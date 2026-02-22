@@ -29,7 +29,7 @@ import {
   Lightbulb,
   CheckCircle2
 } from 'lucide-react';
-import developerPhoto from '@/assets/developer-photo.png';
+// Logo import will be from public folder
 
 const technologies = [
   { name: 'React 18', description: 'مكتبة واجهات المستخدم', icon: '⚛️', color: 'from-cyan-500 to-blue-500' },
@@ -254,7 +254,7 @@ export default function About() {
         <ul>
           <li>تغيير اسم المطعم</li>
           <li>رفع شعار المطعم</li>
-          <li>إضافة بيانات الاتصال والعنوان</li>
+          <li>إضافة بيانات الاتصال والعنوا��</li>
           <li>تحديد نسبة الضريبة</li>
         </ul>
       </div>
@@ -573,7 +573,7 @@ export default function About() {
     
     <h3>التطبيق المستقل:</h3>
     <ul>
-      <li><strong>PWA:</strong> Progressive Web App للتثبيت على أي جهاز</li>
+      <li><strong>PWA:</strong> Progressive Web App للتثبيت على ��ي جهاز</li>
       <li><strong>Electron:</strong> لبناء تطبيق Desktop (Windows/Mac/Linux)</li>
     </ul>
   </div>
@@ -644,35 +644,33 @@ export default function About() {
         <Card className="glass shadow-card overflow-hidden">
           <CardContent className="p-0">
             <div className="flex flex-col md:flex-row">
-              <div className="w-full md:w-1/3 bg-gradient-to-br from-primary/20 to-primary/5 p-8 flex items-center justify-center">
-                <div className="relative">
-                  <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-primary/20 shadow-glow">
-                    <img
-                      src={developerPhoto}
-                      alt="المطور"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="absolute -bottom-2 -right-2 bg-primary text-primary-foreground p-2 rounded-full shadow-lg">
-                    <Code2 className="w-5 h-5" />
-                  </div>
+              <div className="w-full md:w-1/3 bg-gradient-to-br from-blue-500/20 to-cyan-500/5 p-8 flex items-center justify-center">
+                <div className="relative w-40 h-40">
+                  <img
+                    src="/raqmiat-logo.png"
+                    alt="رقميات"
+                    className="w-full h-full object-contain"
+                  />
                 </div>
               </div>
               <div className="flex-1 p-8">
                 <div className="flex items-center gap-2 mb-2">
-                  <Badge className="bg-primary/10 text-primary">المطور</Badge>
-                  <Badge variant="outline" className="border-success/50 text-success">متاح للعمل</Badge>
+                  <Badge className="bg-blue-500/10 text-blue-600">الشركة</Badge>
+                  <Badge variant="outline" className="border-success/50 text-success">نشطة</Badge>
                 </div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">المهندس محمد أيمن</h2>
-                <p className="text-muted-foreground mb-4">
-                  مهندس برمجيات متخصص في تطوير تطبيقات الويب والأنظمة المتكاملة
+                <h2 className="text-2xl font-bold text-foreground mb-2">رقميات</h2>
+                <p className="text-muted-foreground mb-3">
+                  المملكة العربية السعودية - قسم تكنولوجيا المعلومات
+                </p>
+                <p className="text-muted-foreground mb-4 font-medium">
+                  خبرتنا تفوق عشر سنوات في برمجة وتطويرات المواقع والتطبيقات
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="secondary">React</Badge>
                   <Badge variant="secondary">TypeScript</Badge>
-                  <Badge variant="secondary">Node.js</Badge>
-                  <Badge variant="secondary">Python</Badge>
-                  <Badge variant="secondary">Databases</Badge>
+                  <Badge variant="secondary">Web Development</Badge>
+                  <Badge variant="secondary">Applications</Badge>
+                  <Badge variant="secondary">POS Systems</Badge>
                 </div>
               </div>
             </div>

@@ -3,10 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Home,
-  ShoppingCart,
-  Heart,
-  User,
-  Menu,
+  Search,
+  SlidersHorizontal,
+  RefreshCw,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -14,14 +13,14 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   path: string;
+  action?: () => void;
 }
 
 const navItems: NavItem[] = [
   { icon: Home, label: 'الرئيسية', path: '/menu' },
-  { icon: ShoppingCart, label: 'السلة', path: '/cart' },
-  { icon: Heart, label: 'المفضلة', path: '/favorites' },
-  { icon: User, label: 'حسابي', path: '/account' },
-  { icon: Menu, label: 'المزيد', path: '/more' },
+  { icon: Search, label: 'بحث', path: '/menu#search' },
+  { icon: SlidersHorizontal, label: 'فلترة', path: '/menu#filter' },
+  { icon: RefreshCw, label: 'تحديث', path: '/menu#refresh' },
 ];
 
 export function BottomNavigation() {
