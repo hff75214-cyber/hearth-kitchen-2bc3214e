@@ -5,9 +5,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { SystemUser, defaultPageByRole, PagePermission } from "@/lib/database";
 import { ReservationNotifications } from "@/components/ReservationNotifications";
 import { DemoDataNotification } from "@/components/DemoDataNotification";
+import { useAuth } from "@/hooks/useAuth";
+import { useRestaurant } from "@/hooks/useRestaurant";
+import { useFeatureToggles, routeToFeature } from "@/hooks/useFeatureToggles";
+import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import POS from "./pages/POS";
@@ -23,7 +26,6 @@ import Kitchen from "./pages/Kitchen";
 import KitchenStats from "./pages/KitchenStats";
 import Customers from "./pages/Customers";
 import Delivery from "./pages/Delivery";
-import Login from "./pages/Login";
 import Users from "./pages/Users";
 import ActivityLog from "./pages/ActivityLog";
 import Shifts from "./pages/Shifts";
@@ -37,15 +39,16 @@ import EmployeePerformance from "./pages/EmployeePerformance";
 import Branches from "./pages/Branches";
 import Suppliers from "./pages/Suppliers";
 import CustomerDisplay from "./pages/CustomerDisplay";
-import Welcome from "./pages/Welcome";
 import About from "./pages/About";
 import PublicMenu from "./pages/PublicMenu";
 import MenuCategory from "./pages/MenuCategory";
 import ProductDetails from "./pages/ProductDetails";
+import FeatureSettings from "./pages/FeatureSettings";
+import TaxSettings from "./pages/TaxSettings";
 
 const queryClient = new QueryClient();
 
-// Initialize theme on app load
+// Initialize theme
 const initTheme = () => {
   const saved = localStorage.getItem('theme');
   if (saved === 'dark') {
@@ -56,115 +59,32 @@ const initTheme = () => {
 };
 initTheme();
 
-// Route permission mapping
-const routePermissions: Record<string, PagePermission> = {
-  '/': 'dashboard',
-  '/pos': 'pos',
-  '/products': 'products',
-  '/inventory': 'inventory',
-  '/materials': 'materials',
-  '/materials-report': 'materials-report',
-  '/tables': 'tables',
-  '/tables-view': 'tables-view',
-  '/reservations': 'reservations',
-  '/kitchen': 'kitchen',
-  '/kitchen-stats': 'kitchen-stats',
-  '/delivery': 'delivery',
-  '/customers': 'customers',
-  '/loyalty': 'loyalty',
-  '/offers': 'offers',
-  '/offers-report': 'offers-report',
-  '/sales': 'sales',
-  '/expenses': 'expenses',
-  '/reports': 'reports',
-  '/employee-performance': 'employee-performance',
-  '/sales-goals': 'sales-goals',
-  '/branches': 'branches',
-  '/suppliers': 'suppliers',
-  '/settings': 'settings',
-  '/users': 'users',
-  '/activity-log': 'activity-log',
-  '/shifts': 'shifts',
-  '/about': 'about',
-};
-
-// Protected Route Component
-function ProtectedRoute({ 
-  element, 
-  requiredPermission, 
-  userPermissions,
-  defaultPath 
-}: { 
-  element: React.ReactElement;
-  requiredPermission: PagePermission;
-  userPermissions: PagePermission[];
-  defaultPath: string;
-}) {
-  if (userPermissions.includes(requiredPermission)) {
-    return element;
-  }
-  return <Navigate to={defaultPath} replace />;
+function FeatureRoute({ featureKey, element }: { featureKey: string; element: React.ReactElement }) {
+  // Feature routes are checked in the parent - this is a wrapper for clarity
+  return element;
 }
 
-const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState<SystemUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showWelcome, setShowWelcome] = useState(false);
+function AppContent() {
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { restaurant, restaurantId, isLoading: restaurantLoading } = useRestaurant();
+  const { isFeatureEnabled, isLoading: togglesLoading } = useFeatureToggles(restaurantId);
   const [showDemoNotification, setShowDemoNotification] = useState(false);
-  const [isFirstLogin, setIsFirstLogin] = useState(false);
 
   useEffect(() => {
-    // Check if first visit
-    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
-    if (!hasSeenWelcome) {
-      setShowWelcome(true);
-    }
-    
-    // Check if user is already logged in
-    const savedUserData = localStorage.getItem('currentUserData');
-    if (savedUserData) {
-      try {
-        const user = JSON.parse(savedUserData) as SystemUser;
-        setCurrentUser(user);
-        setIsLoggedIn(true);
-      } catch {
-        localStorage.removeItem('currentUserData');
+    if (isAuthenticated && restaurantId) {
+      const hasSeenDemo = localStorage.getItem('hasSeenDemoNotification');
+      if (!hasSeenDemo) {
+        setShowDemoNotification(true);
       }
     }
-    setIsLoading(false);
-  }, []);
+  }, [isAuthenticated, restaurantId]);
 
-  const handleWelcomeComplete = () => {
-    localStorage.setItem('hasSeenWelcome', 'true');
-    setShowWelcome(false);
-  };
-
-  const handleLogin = (user: SystemUser) => {
-    localStorage.setItem('currentUserData', JSON.stringify(user));
-    setCurrentUser(user);
-    setIsLoggedIn(true);
-    
-    // Check if this is first login (show demo data notification)
-    const hasSeenDemoNotification = localStorage.getItem('hasSeenDemoNotification');
-    if (!hasSeenDemoNotification) {
-      setIsFirstLogin(true);
-      setShowDemoNotification(true);
-    }
-  };
-
-  const handleDismissDemoNotification = () => {
+  const handleDismissDemo = () => {
     localStorage.setItem('hasSeenDemoNotification', 'true');
     setShowDemoNotification(false);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('currentUserData');
-    setCurrentUser(null);
-    setIsLoggedIn(false);
-  };
-
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -172,333 +92,104 @@ const App = () => {
     );
   }
 
-  // Show welcome page for first-time visitors
-  if (showWelcome) {
+  if (!isAuthenticated) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Welcome onComplete={handleWelcomeComplete} />
-        </TooltipProvider>
-      </QueryClientProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/menu" element={<PublicMenu />} />
+          <Route path="/menu/:categoryName" element={<MenuCategory />} />
+          <Route path="/product/:productId" element={<ProductDetails />} />
+          <Route path="/customer-display" element={<CustomerDisplay />} />
+          <Route path="*" element={<Auth />} />
+        </Routes>
+      </BrowserRouter>
     );
   }
 
-  if (!isLoggedIn || !currentUser) {
+  if (restaurantLoading || togglesLoading) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Login onLogin={handleLogin} />
-        </TooltipProvider>
-      </QueryClientProvider>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+          <p className="text-sm text-muted-foreground">جاري تحميل بيانات المطعم...</p>
+        </div>
+      </div>
     );
   }
 
-  if (!isLoggedIn || !currentUser) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Login onLogin={handleLogin} />
-        </TooltipProvider>
-      </QueryClientProvider>
-    );
-  }
+  // Helper to check if route is enabled
+  const isRouteEnabled = (path: string) => {
+    const featureKey = routeToFeature[path];
+    if (!featureKey) return true; // Unknown routes are allowed
+    return isFeatureEnabled(featureKey);
+  };
 
-  const userPermissions = currentUser.permissions || [];
-  const defaultPath = defaultPageByRole[currentUser.role] || '/';
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/menu" element={<PublicMenu />} />
+        <Route path="/menu/:categoryName" element={<MenuCategory />} />
+        <Route path="/product/:productId" element={<ProductDetails />} />
+        <Route path="/customer-display" element={<CustomerDisplay />} />
+        
+        {/* Main App */}
+        <Route path="/*" element={
+          <MainLayout restaurantName={restaurant?.name || 'مطعمي'}>
+            {showDemoNotification && <DemoDataNotification onDismiss={handleDismissDemo} />}
+            <Routes>
+              <Route path="/" element={isRouteEnabled('/') ? <Dashboard /> : <Navigate to="/pos" replace />} />
+              {isRouteEnabled('/pos') && <Route path="/pos" element={<POS />} />}
+              {isRouteEnabled('/products') && <Route path="/products" element={<Products />} />}
+              {isRouteEnabled('/inventory') && <Route path="/inventory" element={<Inventory />} />}
+              {isRouteEnabled('/materials') && <Route path="/materials" element={<Materials />} />}
+              {isRouteEnabled('/materials-report') && <Route path="/materials-report" element={<MaterialsReport />} />}
+              {isRouteEnabled('/tables') && <Route path="/tables" element={<Tables />} />}
+              {isRouteEnabled('/tables-view') && <Route path="/tables-view" element={<TablesView />} />}
+              {isRouteEnabled('/sales') && <Route path="/sales" element={<Sales />} />}
+              {isRouteEnabled('/reports') && <Route path="/reports" element={<Reports />} />}
+              {isRouteEnabled('/settings') && <Route path="/settings" element={<Settings />} />}
+              {isRouteEnabled('/kitchen') && <Route path="/kitchen" element={<Kitchen />} />}
+              {isRouteEnabled('/kitchen-stats') && <Route path="/kitchen-stats" element={<KitchenStats />} />}
+              {isRouteEnabled('/customers') && <Route path="/customers" element={<Customers />} />}
+              {isRouteEnabled('/delivery') && <Route path="/delivery" element={<Delivery />} />}
+              {isRouteEnabled('/users') && <Route path="/users" element={<Users />} />}
+              {isRouteEnabled('/activity-log') && <Route path="/activity-log" element={<ActivityLog />} />}
+              {isRouteEnabled('/shifts') && <Route path="/shifts" element={<Shifts />} />}
+              {isRouteEnabled('/loyalty') && <Route path="/loyalty" element={<Loyalty />} />}
+              {isRouteEnabled('/reservations') && <Route path="/reservations" element={<Reservations />} />}
+              {isRouteEnabled('/expenses') && <Route path="/expenses" element={<Expenses />} />}
+              {isRouteEnabled('/offers') && <Route path="/offers" element={<Offers />} />}
+              {isRouteEnabled('/offers-report') && <Route path="/offers-report" element={<OffersReport />} />}
+              {isRouteEnabled('/employee-performance') && <Route path="/employee-performance" element={<EmployeePerformance />} />}
+              {isRouteEnabled('/sales-goals') && <Route path="/sales-goals" element={<SalesGoals />} />}
+              {isRouteEnabled('/branches') && <Route path="/branches" element={<Branches />} />}
+              {isRouteEnabled('/suppliers') && <Route path="/suppliers" element={<Suppliers />} />}
+              {isRouteEnabled('/about') && <Route path="/about" element={<About />} />}
+              
+              {/* Always available */}
+              <Route path="/feature-settings" element={<FeatureSettings />} />
+              <Route path="/taxes" element={<TaxSettings />} />
+              
+              {/* Catch all */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <ReservationNotifications />
+          </MainLayout>
+        } />
+      </Routes>
+    </BrowserRouter>
+  );
+}
 
+const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Public Menu Routes - No login required */}
-            <Route path="/menu" element={<PublicMenu />} />
-            <Route path="/menu/:categoryName" element={<MenuCategory />} />
-            <Route path="/product/:productId" element={<ProductDetails />} />
-            
-            {/* Customer Display - Public route without layout */}
-            <Route path="/customer-display" element={<CustomerDisplay />} />
-            
-            {/* Main App Routes with Layout */}
-            <Route path="/*" element={
-              <MainLayout 
-                userName={currentUser.name} 
-                userRole={currentUser.role}
-                userPermissions={userPermissions}
-                onLogout={handleLogout}
-              >
-                {/* Demo Data Notification for first-time users */}
-                {showDemoNotification && (
-                  <DemoDataNotification onDismiss={handleDismissDemoNotification} />
-                )}
-                
-                <Routes>
-              {/* Default redirect based on role */}
-              <Route path="/" element={
-                userPermissions.includes('dashboard') 
-                  ? <Dashboard /> 
-                  : <Navigate to={defaultPath} replace />
-              } />
-              
-              <Route path="/pos" element={
-                <ProtectedRoute 
-                  element={<POS />} 
-                  requiredPermission="pos" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/products" element={
-                <ProtectedRoute 
-                  element={<Products />} 
-                  requiredPermission="products" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/inventory" element={
-                <ProtectedRoute 
-                  element={<Inventory />} 
-                  requiredPermission="inventory" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/materials" element={
-                <ProtectedRoute 
-                  element={<Materials />} 
-                  requiredPermission="materials" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/materials-report" element={
-                <ProtectedRoute 
-                  element={<MaterialsReport />} 
-                  requiredPermission="materials-report" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/tables" element={
-                <ProtectedRoute 
-                  element={<Tables />} 
-                  requiredPermission="tables" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/tables-view" element={
-                <ProtectedRoute 
-                  element={<TablesView />} 
-                  requiredPermission="tables-view" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/sales" element={
-                <ProtectedRoute 
-                  element={<Sales />} 
-                  requiredPermission="sales" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/reports" element={
-                <ProtectedRoute 
-                  element={<Reports />} 
-                  requiredPermission="reports" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/settings" element={
-                <ProtectedRoute 
-                  element={<Settings />} 
-                  requiredPermission="settings" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/kitchen" element={
-                <ProtectedRoute 
-                  element={<Kitchen />} 
-                  requiredPermission="kitchen" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/customers" element={
-                <ProtectedRoute 
-                  element={<Customers />} 
-                  requiredPermission="customers" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/delivery" element={
-                <ProtectedRoute 
-                  element={<Delivery />} 
-                  requiredPermission="delivery" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/users" element={
-                <ProtectedRoute 
-                  element={<Users />} 
-                  requiredPermission="users" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/activity-log" element={
-                <ProtectedRoute 
-                  element={<ActivityLog />} 
-                  requiredPermission="activity-log" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/shifts" element={
-                <ProtectedRoute 
-                  element={<Shifts />} 
-                  requiredPermission="shifts" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/loyalty" element={
-                <ProtectedRoute 
-                  element={<Loyalty />} 
-                  requiredPermission="loyalty" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/reservations" element={
-                <ProtectedRoute 
-                  element={<Reservations />} 
-                  requiredPermission="reservations" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/expenses" element={
-                <ProtectedRoute 
-                  element={<Expenses />} 
-                  requiredPermission="expenses" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/offers" element={
-                <ProtectedRoute 
-                  element={<Offers />} 
-                  requiredPermission="offers" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/employee-performance" element={
-                <ProtectedRoute 
-                  element={<EmployeePerformance />} 
-                  requiredPermission="employee-performance" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/offers-report" element={
-                <ProtectedRoute 
-                  element={<OffersReport />} 
-                  requiredPermission="offers-report" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/sales-goals" element={
-                <ProtectedRoute 
-                  element={<SalesGoals />} 
-                  requiredPermission="sales-goals" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/kitchen-stats" element={
-                <ProtectedRoute 
-                  element={<KitchenStats />} 
-                  requiredPermission="kitchen-stats" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/branches" element={
-                <ProtectedRoute 
-                  element={<Branches />} 
-                  requiredPermission="branches" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/suppliers" element={
-                <ProtectedRoute 
-                  element={<Suppliers />} 
-                  requiredPermission="suppliers" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-              
-              <Route path="/about" element={
-                <ProtectedRoute 
-                  element={<About />} 
-                  requiredPermission="about" 
-                  userPermissions={userPermissions}
-                  defaultPath={defaultPath}
-                />
-              } />
-
-                  {/* Catch all - redirect to default path */}
-                  <Route path="*" element={<Navigate to={defaultPath} replace />} />
-                </Routes>
-                <ReservationNotifications />
-              </MainLayout>
-            } />
-          </Routes>
-        </BrowserRouter>
+        <AppContent />
       </TooltipProvider>
     </QueryClientProvider>
   );
