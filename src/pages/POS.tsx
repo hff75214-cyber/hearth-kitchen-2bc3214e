@@ -571,10 +571,10 @@ export default function POS() {
                   <img
                     src={product.image}
                     alt={product.name}
-                    className="w-full h-20 object-cover rounded-lg mb-2"
+                    className="w-full aspect-square object-cover rounded-lg mb-2"
                   />
                 ) : (
-                  <div className="w-full h-20 bg-secondary rounded-lg mb-2 flex items-center justify-center">
+                  <div className="w-full aspect-square bg-secondary rounded-lg mb-2 flex items-center justify-center">
                     <ShoppingCart className="w-8 h-8 text-muted-foreground/30" />
                   </div>
                 )}

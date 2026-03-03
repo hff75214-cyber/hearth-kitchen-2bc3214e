@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import {
   TrendingUp,
   ShoppingCart,
@@ -12,9 +13,12 @@ import {
   Clock,
   Calendar,
   BarChart3,
+  ExternalLink,
+  Store,
 } from 'lucide-react';
 import LiveOrdersPanel from '@/components/LiveOrdersPanel';
 import { db, Order, Product } from '@/lib/database';
+import { useRestaurant } from '@/hooks/useRestaurant';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -65,6 +69,7 @@ interface HourlyData {
 const COLORS = ['hsl(35, 95%, 55%)', 'hsl(142, 76%, 36%)', 'hsl(199, 89%, 48%)', 'hsl(280, 65%, 60%)'];
 
 export default function Dashboard() {
+  const { restaurantId } = useRestaurant();
   const [stats, setStats] = useState<DashboardStats>({
     todaySales: 0,
     todayOrders: 0,
@@ -290,7 +295,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-xl md:text-3xl font-bold text-foreground">لوحة التحكم</h1>
           <p className="text-sm md:text-base text-muted-foreground mt-1">
-            مرحباً بك في نظام كاشير محمد أيمن
+            مرحباً بك في نظام إدارة مطعمك
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 md:gap-4">
@@ -354,7 +359,36 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Alerts */}
+      {/* Store Link */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+        <Card className="border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/20">
+                <Store className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">المتجر الإلكتروني</p>
+                <p className="text-xs text-muted-foreground">شارك رابط المتجر مع عملائك للطلب أونلاين وحجز الطاولات</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-secondary px-2 py-1 rounded text-muted-foreground hidden md:block" dir="ltr">
+                {window.location.origin}/store/{restaurantId || '...'}
+              </code>
+              <Link to={`/store/${restaurantId}`} target="_blank">
+                <Button size="sm" variant="outline" className="border-primary/50 text-primary" onClick={() => {
+                  const storeUrl = `${window.location.origin}/store/${restaurantId}`;
+                  navigator.clipboard.writeText(storeUrl);
+                }}>
+                  <ExternalLink className="w-4 h-4 ml-1" /> فتح المتجر
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {stats.lowStockItems > 0 && (
         <motion.div
           initial={{ opacity: 0, x: -20 }}

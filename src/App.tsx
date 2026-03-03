@@ -45,6 +45,7 @@ import MenuCategory from "./pages/MenuCategory";
 import ProductDetails from "./pages/ProductDetails";
 import FeatureSettings from "./pages/FeatureSettings";
 import TaxSettings from "./pages/TaxSettings";
+import PublicStore from "./pages/PublicStore";
 
 const queryClient = new QueryClient();
 
@@ -101,6 +102,7 @@ function AppContent() {
           <Route path="/menu/:categoryName" element={<MenuCategory />} />
           <Route path="/product/:productId" element={<ProductDetails />} />
           <Route path="/customer-display" element={<CustomerDisplay />} />
+          <Route path="/store/:restaurantId" element={<PublicStore />} />
           <Route path="*" element={<Auth />} />
         </Routes>
       </BrowserRouter>
@@ -133,6 +135,7 @@ function AppContent() {
         <Route path="/menu/:categoryName" element={<MenuCategory />} />
         <Route path="/product/:productId" element={<ProductDetails />} />
         <Route path="/customer-display" element={<CustomerDisplay />} />
+        <Route path="/store/:restaurantId" element={<PublicStore />} />
         
         {/* Main App */}
         <Route path="/*" element={
