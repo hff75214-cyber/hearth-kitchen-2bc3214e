@@ -1,65 +1,69 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Users as UsersIcon,
-  Shield,
-  ShieldCheck,
-  ShieldAlert,
-  Eye,
-  EyeOff,
-  Check,
-  X,
-  UserCog,
+  Plus, Search, Edit, Trash2, Users as UsersIcon, Shield, ShieldCheck,
+  Eye, EyeOff, Check, X, UserCog,
 } from 'lucide-react';
-import { 
-  db, 
-  SystemUser, 
-  UserRole, 
-  PagePermission, 
-  defaultPermissionsByRole, 
-  roleNames, 
-  pageNames 
-} from '@/lib/database';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { useRestaurant } from '@/hooks/useRestaurant';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
-const allPermissions: PagePermission[] = [
-  'dashboard', 'pos', 'products', 'inventory', 'materials', 'materials-report',
-  'tables', 'tables-view', 'kitchen', 'delivery', 'customers', 'sales', 'reports', 'settings', 'users'
-];
+interface StaffMember {
+  id: string;
+  name: string;
+  username: string;
+  password_hash: string;
+  role: string;
+  permissions: string[];
+  is_active: boolean;
+  restaurant_id: string;
+  user_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
-const roleIcons: Record<UserRole, React.ComponentType<{ className?: string }>> = {
-  admin: ShieldCheck,
-  cashier: Shield,
-  kitchen: Shield,
-  waiter: Shield,
-  delivery: Shield,
+type UserRole = 'admin' | 'cashier' | 'kitchen' | 'waiter' | 'delivery';
+
+const roleNames: Record<string, string> = {
+  admin: 'مدير',
+  cashier: 'كاشير',
+  kitchen: 'مطبخ',
+  waiter: 'ويتر',
+  delivery: 'توصيل',
 };
 
-const roleColors: Record<UserRole, string> = {
+const pageNames: Record<string, string> = {
+  dashboard: 'لوحة التحكم', pos: 'نقطة البيع', products: 'المنتجات',
+  inventory: 'المخزون', materials: 'المواد الخام', 'materials-report': 'تقرير المواد',
+  tables: 'الطاولات', 'tables-view': 'عرض الطاولات', kitchen: 'المطبخ',
+  delivery: 'التوصيل', customers: 'العملاء', sales: 'المبيعات',
+  reports: 'التقارير', settings: 'الإعدادات', users: 'المستخدمين',
+};
+
+const defaultPermissions: Record<string, string[]> = {
+  admin: Object.keys(pageNames),
+  cashier: ['pos', 'products', 'customers'],
+  kitchen: ['kitchen'],
+  waiter: ['pos', 'tables', 'tables-view'],
+  delivery: ['delivery'],
+};
+
+const allPermissions = Object.keys(pageNames);
+
+const roleIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  admin: ShieldCheck, cashier: Shield, kitchen: Shield, waiter: Shield, delivery: Shield,
+};
+
+const roleColors: Record<string, string> = {
   admin: 'bg-primary text-primary-foreground',
   cashier: 'bg-info text-info-foreground',
   kitchen: 'bg-warning text-warning-foreground',
@@ -68,136 +72,105 @@ const roleColors: Record<UserRole, string> = {
 };
 
 export default function Users() {
-  const [users, setUsers] = useState<SystemUser[]>([]);
+  const { restaurantId } = useRestaurant();
+  const [users, setUsers] = useState<StaffMember[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<SystemUser | null>(null);
+  const [editingUser, setEditingUser] = useState<StaffMember | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState<Partial<SystemUser>>({
-    name: '',
-    password: '',
-    role: 'cashier',
-    permissions: [],
-    isActive: true,
+  const [formData, setFormData] = useState({
+    name: '', username: '', password: '', role: 'cashier' as UserRole,
+    permissions: [...defaultPermissions.cashier], isActive: true,
   });
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
+  useEffect(() => { if (restaurantId) loadUsers(); }, [restaurantId]);
 
   const loadUsers = async () => {
-    const usersData = await db.systemUsers.toArray();
-    setUsers(usersData);
+    if (!restaurantId) return;
+    const { data } = await supabase.from('staff_members').select('*').eq('restaurant_id', restaurantId);
+    setUsers(data || []);
   };
 
-  const filteredUsers = users.filter((user) =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const handleRoleChange = (role: UserRole) => {
-    setFormData({
-      ...formData,
-      role,
-      permissions: [...defaultPermissionsByRole[role]],
-    });
+    setFormData({ ...formData, role, permissions: [...(defaultPermissions[role] || [])] });
   };
 
-  const togglePermission = (permission: PagePermission) => {
-    const currentPermissions = formData.permissions || [];
-    if (currentPermissions.includes(permission)) {
-      setFormData({
-        ...formData,
-        permissions: currentPermissions.filter(p => p !== permission),
-      });
-    } else {
-      setFormData({
-        ...formData,
-        permissions: [...currentPermissions, permission],
-      });
-    }
+  const togglePermission = (perm: string) => {
+    const perms = formData.permissions;
+    setFormData({
+      ...formData,
+      permissions: perms.includes(perm) ? perms.filter(p => p !== perm) : [...perms, perm],
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.name?.trim()) {
-      toast({ title: 'خطأ', description: 'الرجاء إدخال اسم المستخدم', variant: 'destructive' });
+    if (!restaurantId) return;
+    if (!formData.name?.trim() || !formData.username?.trim()) {
+      toast({ title: 'خطأ', description: 'الرجاء إدخال الاسم واسم المستخدم', variant: 'destructive' });
       return;
     }
-
-    if (!editingUser && (!formData.password || formData.password.length < 1)) {
+    if (!editingUser && !formData.password) {
       toast({ title: 'خطأ', description: 'الرجاء إدخال كلمة المرور', variant: 'destructive' });
-      return;
-    }
-
-    // Validate password is numeric only
-    if (formData.password && !/^\d{1,10}$/.test(formData.password)) {
-      toast({ title: 'خطأ', description: 'كلمة المرور يجب أن تكون أرقام فقط (1-10 أرقام)', variant: 'destructive' });
       return;
     }
 
     try {
       if (editingUser) {
-        const updateData: Partial<SystemUser> = {
-          name: formData.name?.trim() || '',
+        const updateData: any = {
+          name: formData.name.trim(),
+          username: formData.username.trim(),
           role: formData.role,
           permissions: formData.permissions,
-          isActive: formData.isActive,
-          updatedAt: new Date(),
+          is_active: formData.isActive,
         };
+        if (formData.password) updateData.password_hash = formData.password;
         
-        // Only update password if provided
-        if (formData.password) {
-          updateData.password = formData.password;
-        }
-        
-        await db.systemUsers.update(editingUser.id!, updateData);
+        const { error } = await supabase.from('staff_members').update(updateData).eq('id', editingUser.id);
+        if (error) throw error;
         toast({ title: 'تم التحديث', description: 'تم تحديث المستخدم بنجاح' });
       } else {
-        await db.systemUsers.add({
-          name: formData.name?.trim() || '',
-          password: formData.password || '',
-          role: formData.role || 'cashier',
-          permissions: formData.permissions || [],
-          isActive: formData.isActive !== false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+        const { error } = await supabase.from('staff_members').insert({
+          restaurant_id: restaurantId,
+          name: formData.name.trim(),
+          username: formData.username.trim(),
+          password_hash: formData.password,
+          role: formData.role,
+          permissions: formData.permissions,
+          is_active: formData.isActive,
         });
+        if (error) throw error;
         toast({ title: 'تمت الإضافة', description: 'تم إضافة المستخدم بنجاح' });
       }
-
       setIsDialogOpen(false);
       resetForm();
       loadUsers();
-    } catch (error) {
-      toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ المستخدم', variant: 'destructive' });
+    } catch (error: any) {
+      toast({ title: 'خطأ', description: error.message || 'حدث خطأ', variant: 'destructive' });
     }
   };
 
-  const handleEdit = (user: SystemUser) => {
+  const handleEdit = (user: StaffMember) => {
     setEditingUser(user);
     setFormData({
-      name: user.name,
-      password: '', // Don't show existing password
-      role: user.role,
-      permissions: user.permissions || [],
-      isActive: user.isActive,
+      name: user.name, username: user.username, password: '',
+      role: user.role as UserRole, permissions: user.permissions || [],
+      isActive: user.is_active,
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
-    // Prevent deleting the last admin
-    const admins = users.filter(u => u.role === 'admin' && u.isActive);
+  const handleDelete = async (id: string) => {
+    const admins = users.filter(u => u.role === 'admin' && u.is_active);
     const userToDelete = users.find(u => u.id === id);
-    
     if (userToDelete?.role === 'admin' && admins.length <= 1) {
-      toast({ title: 'خطأ', description: 'لا يمكن حذف آخر مدير في النظام', variant: 'destructive' });
+      toast({ title: 'خطأ', description: 'لا يمكن حذف آخر مدير', variant: 'destructive' });
       return;
     }
-
     if (confirm('هل أنت متأكد من حذف هذا المستخدم؟')) {
-      await db.systemUsers.delete(id);
+      await supabase.from('staff_members').delete().eq('id', id);
       toast({ title: 'تم الحذف', description: 'تم حذف المستخدم بنجاح' });
       loadUsers();
     }
@@ -206,171 +179,63 @@ export default function Users() {
   const resetForm = () => {
     setEditingUser(null);
     setShowPassword(false);
-    setFormData({
-      name: '',
-      password: '',
-      role: 'cashier',
-      permissions: [...defaultPermissionsByRole.cashier],
-      isActive: true,
-    });
+    setFormData({ name: '', username: '', password: '', role: 'cashier', permissions: [...defaultPermissions.cashier], isActive: true });
   };
 
-  const handlePasswordChange = (value: string) => {
-    const filtered = value.replace(/[^0-9]/g, '').slice(0, 10);
-    setFormData({ ...formData, password: filtered });
-  };
-
-  const adminCount = users.filter(u => u.role === 'admin' && u.isActive).length;
-  const activeCount = users.filter(u => u.isActive).length;
+  const adminCount = users.filter(u => u.role === 'admin' && u.is_active).length;
+  const activeCount = users.filter(u => u.is_active).length;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">إدارة المستخدمين</h1>
-          <p className="text-muted-foreground mt-1">
-            إضافة وتعديل المستخدمين وصلاحياتهم
-          </p>
+          <p className="text-muted-foreground mt-1">إضافة وتعديل المستخدمين وصلاحياتهم</p>
         </div>
-        <Button
-          onClick={() => {
-            resetForm();
-            setIsDialogOpen(true);
-          }}
-          className="gradient-primary text-primary-foreground shadow-glow"
-        >
-          <Plus className="w-4 h-4 ml-2" />
-          إضافة مستخدم
+        <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="gradient-primary text-primary-foreground shadow-glow">
+          <Plus className="w-4 h-4 ml-2" /> إضافة مستخدم
         </Button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="glass shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-primary/10">
-                <UsersIcon className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">إجمالي المستخدمين</p>
-                <p className="text-2xl font-bold text-foreground">{users.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="glass shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-success/10">
-                <ShieldCheck className="w-6 h-6 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">المستخدمين النشطين</p>
-                <p className="text-2xl font-bold text-foreground">{activeCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="glass shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-warning/10">
-                <UserCog className="w-6 h-6 text-warning" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">المديرين</p>
-                <p className="text-2xl font-bold text-foreground">{adminCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Card className="glass shadow-card"><CardContent className="p-4"><div className="flex items-center gap-3"><div className="p-3 rounded-xl bg-primary/10"><UsersIcon className="w-6 h-6 text-primary" /></div><div><p className="text-sm text-muted-foreground">إجمالي المستخدمين</p><p className="text-2xl font-bold text-foreground">{users.length}</p></div></div></CardContent></Card>
+        <Card className="glass shadow-card"><CardContent className="p-4"><div className="flex items-center gap-3"><div className="p-3 rounded-xl bg-success/10"><ShieldCheck className="w-6 h-6 text-success" /></div><div><p className="text-sm text-muted-foreground">المستخدمين النشطين</p><p className="text-2xl font-bold text-foreground">{activeCount}</p></div></div></CardContent></Card>
+        <Card className="glass shadow-card"><CardContent className="p-4"><div className="flex items-center gap-3"><div className="p-3 rounded-xl bg-warning/10"><UserCog className="w-6 h-6 text-warning" /></div><div><p className="text-sm text-muted-foreground">المديرين</p><p className="text-2xl font-bold text-foreground">{adminCount}</p></div></div></CardContent></Card>
       </div>
 
-      {/* Search */}
-      <Card className="glass shadow-card">
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="بحث عن مستخدم..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pr-10 bg-secondary border-border"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <Card className="glass shadow-card"><CardContent className="p-4"><div className="relative"><Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="بحث عن مستخدم..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pr-10 bg-secondary border-border" /></div></CardContent></Card>
 
-      {/* Users List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <AnimatePresence>
           {filteredUsers.map((user, index) => {
             const RoleIcon = roleIcons[user.role] || Shield;
             return (
-              <motion.div
-                key={user.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card className={`glass shadow-card hover:shadow-glow transition-all duration-300 ${!user.isActive ? 'opacity-60' : ''}`}>
+              <motion.div key={user.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ delay: index * 0.05 }}>
+                <Card className={`glass shadow-card hover:shadow-glow transition-all duration-300 ${!user.is_active ? 'opacity-60' : ''}`}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-xl ${roleColors[user.role]}`}>
-                          <RoleIcon className="w-5 h-5" />
-                        </div>
+                        <div className={`p-2 rounded-xl ${roleColors[user.role] || 'bg-secondary text-secondary-foreground'}`}><RoleIcon className="w-5 h-5" /></div>
                         <div>
                           <h3 className="font-bold text-foreground">{user.name}</h3>
-                          <Badge variant="outline" className="mt-1">
-                            {roleNames[user.role]}
-                          </Badge>
+                          <p className="text-xs text-muted-foreground">@{user.username}</p>
+                          <Badge variant="outline" className="mt-1">{roleNames[user.role] || user.role}</Badge>
                         </div>
                       </div>
-                      {!user.isActive && (
-                        <Badge variant="destructive">غير نشط</Badge>
-                      )}
+                      {!user.is_active && <Badge variant="destructive">غير نشط</Badge>}
                     </div>
-
                     <div className="mb-3">
                       <p className="text-xs text-muted-foreground mb-1">الصلاحيات:</p>
                       <div className="flex flex-wrap gap-1">
                         {(user.permissions || []).slice(0, 4).map(perm => (
-                          <span key={perm} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
-                            {pageNames[perm]}
-                          </span>
+                          <span key={perm} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">{pageNames[perm] || perm}</span>
                         ))}
-                        {(user.permissions || []).length > 4 && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                            +{(user.permissions || []).length - 4}
-                          </span>
-                        )}
+                        {(user.permissions || []).length > 4 && <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">+{(user.permissions || []).length - 4}</span>}
                       </div>
                     </div>
-
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 border-border hover:bg-secondary"
-                        onClick={() => handleEdit(user)}
-                      >
-                        <Edit className="w-4 h-4 ml-1" />
-                        تعديل
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-destructive/50 text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDelete(user.id!)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1 border-border hover:bg-secondary" onClick={() => handleEdit(user)}><Edit className="w-4 h-4 ml-1" /> تعديل</Button>
+                      <Button variant="outline" size="sm" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(user.id)}><Trash2 className="w-4 h-4" /></Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -381,118 +246,57 @@ export default function Users() {
       </div>
 
       {filteredUsers.length === 0 && (
-        <div className="text-center py-16">
-          <UsersIcon className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
-          <p className="text-muted-foreground">لا يوجد مستخدمين</p>
-        </div>
+        <div className="text-center py-16"><UsersIcon className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" /><p className="text-muted-foreground">لا يوجد مستخدمين</p></div>
       )}
 
-      {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">
-              {editingUser ? 'تعديل المستخدم' : 'إضافة مستخدم جديد'}
-            </DialogTitle>
-          </DialogHeader>
-
+          <DialogHeader><DialogTitle className="text-foreground">{editingUser ? 'تعديل المستخدم' : 'إضافة مستخدم جديد'}</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label className="text-foreground">اسم المستخدم *</Label>
-              <Input
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="bg-secondary border-border"
-                placeholder="الاسم الثلاثي"
-              />
+              <Label className="text-foreground">الاسم الكامل *</Label>
+              <Input required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="bg-secondary border-border" placeholder="الاسم الثلاثي" />
             </div>
-
             <div className="space-y-2">
-              <Label className="text-foreground">
-                كلمة المرور {editingUser ? '(اتركها فارغة للإبقاء على القديمة)' : '*'}
-              </Label>
+              <Label className="text-foreground">اسم المستخدم *</Label>
+              <Input required value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} className="bg-secondary border-border" placeholder="اسم الدخول" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-foreground">كلمة المرور {editingUser ? '(اتركها فارغة للإبقاء على القديمة)' : '*'}</Label>
               <div className="relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={(e) => handlePasswordChange(e.target.value)}
-                  className="bg-secondary border-border pr-10"
-                  placeholder="أرقام فقط (1-10)"
-                  inputMode="numeric"
-                  maxLength={10}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
+                <Input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="bg-secondary border-border pr-10" placeholder="كلمة المرور" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
-
             <div className="space-y-2">
               <Label className="text-foreground">الدور *</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value: UserRole) => handleRoleChange(value)}
-              >
-                <SelectTrigger className="bg-secondary border-border">
-                  <SelectValue />
-                </SelectTrigger>
+              <Select value={formData.role} onValueChange={(v: UserRole) => handleRoleChange(v)}>
+                <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(roleNames) as UserRole[]).map((role) => (
-                    <SelectItem key={role} value={role}>
-                      {roleNames[role]}
-                    </SelectItem>
-                  ))}
+                  {Object.entries(roleNames).map(([key, name]) => <SelectItem key={key} value={key}>{name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-3">
               <Label className="text-foreground">الصلاحيات</Label>
               <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-secondary/50 border border-border max-h-60 overflow-y-auto">
-                {allPermissions.map((permission) => (
-                  <div key={permission} className="flex items-center gap-2">
-                    <Checkbox
-                      id={permission}
-                      checked={(formData.permissions || []).includes(permission)}
-                      onCheckedChange={() => togglePermission(permission)}
-                    />
-                    <label
-                      htmlFor={permission}
-                      className="text-sm text-foreground cursor-pointer"
-                    >
-                      {pageNames[permission]}
-                    </label>
+                {allPermissions.map(perm => (
+                  <div key={perm} className="flex items-center gap-2">
+                    <Checkbox id={perm} checked={formData.permissions.includes(perm)} onCheckedChange={() => togglePermission(perm)} />
+                    <label htmlFor={perm} className="text-sm text-foreground cursor-pointer">{pageNames[perm]}</label>
                   </div>
                 ))}
               </div>
             </div>
-
             <div className="flex items-center gap-3">
-              <Switch
-                checked={formData.isActive}
-                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-              />
+              <Switch checked={formData.isActive} onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })} />
               <Label className="text-foreground">المستخدم نشط</Label>
             </div>
-
             <div className="flex gap-3 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-                className="border-border"
-              >
-                إلغاء
-              </Button>
-              <Button type="submit" className="gradient-primary text-primary-foreground">
-                <Check className="w-4 h-4 ml-2" />
-                {editingUser ? 'حفظ التغييرات' : 'إضافة المستخدم'}
-              </Button>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-border">إلغاء</Button>
+              <Button type="submit" className="gradient-primary text-primary-foreground"><Check className="w-4 h-4 ml-2" /> {editingUser ? 'حفظ التغييرات' : 'إضافة المستخدم'}</Button>
             </div>
           </form>
         </DialogContent>
